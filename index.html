@@ -1,17 +1,144 @@
-<!-- TODO 1: Create the HTML Boilerplate -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Saulinho</title>
+    
 </head>
+
+<style>
+
+.Block{
+    
+    display: block;
+    position: static;
+    height: 580px;
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+
+}
+.contenido{
+    background-color:#D9D9D9;
+    position: fixed;
+    width: 100%;
+    z-index: 10;
+    opacity: 1;
+
+}
+
+.imagen{
+    background-image: url(./assets/images/Group\ 5.jpg);
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+    
+
+}
+
+.Block .presentacion{
+    font-family: Arial, Helvetica, sans-serif;
+    color: #FFFFFF;
+    font-weight: bold;
+    text-align: center;
+    display: block;
+    height: 224px;
+    width: 985px;
+    position: absolute;
+    top: 213px;
+    left: 500px;
+    z-index: 2;
+    
+}
+
+
+
+#Home{
+    display: inline-block;
+    width: 100px;
+    text-align: center;
+    font-weight: bold;
+    color: #2845AC;
+
+}
+
+#Mis-pelis{
+    display:inline-block;
+    width: 100px;
+    text-align: center;
+    color: #2845AC;
+   
+
+}
+#Mi-cumple{
+    display: inline-block;
+    width: 100px;
+    text-align: center;
+    color: #2845AC;
+}
+
+#Mi-contacto{
+    display: inline-block;
+    width: 100px;
+    text-align: center;
+    color: #2845AC;
+}
+
+
+
+</style>
 <body>
-    <h1>Buenas a todos</h1>
-    <h2>Soy Saúl Alvarez, profesional en desarrollar páginas web chingonas.</h2>
-    <img src="./assets/images/Group 5.jpg" />
+    <div class="Block">
+       
+        <div class="contenido">
+            <div id="Home">
+            <p>Home</p>
+            </div>
+            <div id="Mis-pelis">
+            <p>Mis pelis</p>
+
+            </div>
+             <div id="Mi-cumple">
+            <p>Mi cumple</p>
+             </div>
+                <div id="Mi-contacto">
+            <p>Mi contacto</p>
+            
+             </div>
+        </div>
+
+        <div class="imagen">
+           
+            
+        </div>
+
+        <div class="presentacion">
+            <h1>Buenas a todos</h1>
+            <h2>Soy Saúl Alvarez, profesional en desarrollar páginas web chingonas.</h2>
+            <h3 style="font-weight: lighter; font-size: medium ;">Lo que gusten se arma sin pedos, en unión a mi encontrarán al lic. Yan Lui, diseñador chingon, madre que te imaginas madre que te diseña el uey</h3>
+        </div>
+        
+        
+    </div>
+    
+    
+    <div class="header">
+        
+        <div class="imagen">
+            
+        
+        </div>    
+    </div>
+   
+    
     <br />
-    <h3>Lo que gusten se arma sin pedos, en unión a mi encontrarán al lic. Yan Lui, diseñador chingon, madre que te imaginas madre que te diseña el uey</h3>
+    
     <hr />
     <h2>Les voy a platicar de algunos proyectos que he hecho, perros, namas pa q vean.</h2>
     <hr />
@@ -32,16 +159,3 @@
     
 </body>
 </html>
-<!-- TODO 2: Add Your previous projects' HTML into the public folder -->
-
-<!-- TODO 3: Take screenshots of your project previews and add the images to the images folder -->
-
-<!-- TODO 4: Add titles/subtitles etc. -->
-
-<!-- TODO 5: Add a link to the project pages -->
-
-<!-- TODO 6: Add images to show the project previews
-HINT for TODO 6: You can use the height attribute set to 200 to make the image smaller:
-https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-height -->
-
-<!-- TODO 7: Add the Contact Me and About Me page links -->
