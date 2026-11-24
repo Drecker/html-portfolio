@@ -6,17 +6,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cubos vs Zombis">
+<meta name="apple-mobile-web-app-title" content="Bloqueados">
 <meta name="theme-color" content="#14110f">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
-<title>Cubos vs Zombis</title>
+<title>Bloqueados: Horda Mutante</title>
 <style>
-  html,body{margin:0;height:100%;background:#14110f;overflow:hidden;touch-action:none;
+  html,body{margin:0;height:100%;background:#14110f;overflow:hidden;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#f3e9d8}
-  canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh}
+  canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;touch-action:none}
   #safe{position:fixed;visibility:hidden;pointer-events:none;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
   .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
@@ -27,7 +27,7 @@
   h2{margin:0 0 10px;font-size:clamp(24px,6vmin,44px);color:#ffcf4a}
   p{margin:6px 12px;opacity:.9;font-size:clamp(13px,3.2vmin,17px);max-width:560px;line-height:1.35}
   button{font:inherit;font-weight:800;font-size:clamp(18px,4.5vmin,26px);margin:12px 6px 4px;padding:12px 34px;
-    border:0;border-radius:14px;background:#ffcf4a;color:#2a1608;box-shadow:0 5px 0 #a8641a;cursor:pointer}
+    border:0;border-radius:14px;background:#ffcf4a;color:#2a1608;box-shadow:0 5px 0 #a8641a;cursor:pointer;touch-action:manipulation}
   button:active{transform:translateY(3px);box-shadow:0 2px 0 #a8641a}
   button.sec{background:#5b4a3a;color:#f3e9d8;box-shadow:0 5px 0 #2e241b}
   .small{font-size:12px;opacity:.6}
@@ -42,6 +42,40 @@
   .card.perm{border-color:#7ad3ff}.card.perm .nm{color:#7ad3ff}
   .card:disabled{opacity:.55}
   @media (orientation:portrait){.card{width:80vw;min-height:0;flex-direction:row;text-align:left;justify-content:flex-start;gap:12px}.card .txt{align-items:flex-start;gap:3px}}
+  /* menú */
+  .logo{font-weight:900;font-size:clamp(42px,12vmin,92px);line-height:.95;letter-spacing:3px;color:#b9e34a;
+    text-shadow:0 5px 0 #3d5a12,0 10px 0 rgba(0,0,0,.45);margin:0 0 6px}
+  .logo small{display:block;font-size:.3em;letter-spacing:.5em;color:#ffcf4a;text-shadow:0 3px 0 #8a3b12;margin-top:8px;padding-left:.5em}
+  button.big{font-size:clamp(22px,6vmin,34px);padding:12px 56px}
+  .menurow{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:96vw}
+  .menurow button{font-size:clamp(14px,3.6vmin,18px);padding:10px 16px;margin:8px 3px 4px}
+  .topbar{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:calc(env(safe-area-inset-right) + 12px)}
+  .coins{display:inline-block;background:#2d241c;border:2px solid #ffcf4a;border-radius:20px;padding:4px 12px;font-weight:800;color:#ffcf4a;white-space:nowrap;font-size:16px}
+  .screen.panel{justify-content:flex-start;background:rgba(14,11,9,.96)}
+  .phead{display:flex;align-items:center;gap:10px;width:100%;max-width:920px;padding:8px 12px;box-sizing:border-box}
+  .phead h2{flex:1;margin:0;text-align:center;font-size:clamp(22px,5vmin,32px)}
+  button.back{margin:0;padding:8px 14px;font-size:15px}
+  .scroll{flex:1;overflow-y:auto;width:100%;max-width:920px;padding:4px 12px 24px;box-sizing:border-box;-webkit-overflow-scrolling:touch;touch-action:pan-y;text-align:left}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+  .up{display:flex;align-items:center;gap:10px;background:#2d241c;border-radius:14px;padding:10px 12px}
+  .up .ic{font-size:30px;width:38px;text-align:center}
+  .up .info{flex:1;min-width:0}
+  .up .nm{font-weight:900;color:#ffcf4a}
+  .up .ds{font-size:13px;opacity:.85}
+  .pips{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap}.pips i{width:12px;height:6px;border-radius:2px;background:#4a3d31}.pips i.on{background:#7ad34a}
+  button.buy{margin:0;padding:8px 10px;font-size:15px;min-width:86px}
+  button.buy:disabled{background:#4a3d31;color:#9a8a7a;box-shadow:0 5px 0 #2e241b}
+  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .st{background:#2d241c;border-radius:12px;padding:10px;text-align:center}
+  .st b{display:block;font-size:22px;color:#ffcf4a}.st span{font-size:12px;opacity:.75}
+  table{width:100%;border-collapse:collapse;margin-top:14px}
+  th,td{padding:7px 6px;border-bottom:1px solid #3a2f25;font-size:14px;text-align:center}
+  th{color:#ffcf4a;font-size:12px;text-transform:uppercase}
+  tr.me td{background:rgba(255,207,74,.15)}
+  .scroll h3{color:#b9e34a;margin:16px 0 6px}
+  .scroll p{margin:4px 0;max-width:none}
+  .earn{font-size:clamp(22px,6vmin,32px);font-weight:900;color:#ffcf4a;margin:6px}
+  .row{display:flex;flex-wrap:wrap;justify-content:center}
 </style>
 </head>
 <body>
@@ -49,13 +83,57 @@
 <div id="safe"></div>
 
 <div id="menu" class="screen on">
-  <h1>CUBOS vs ZOMBIS</h1>
-  <p>Sobrevive oleada tras oleada. Cada 10 oleadas llega un <b>jefe</b>: derrótalo para ganar un arma nueva. Gana experiencia, sube de nivel para curarte y cada 5 niveles elige una <b>tarjeta de mejora</b>.</p>
-  <p>📱 <b>Pulgar izquierdo:</b> moverse · <b>Pulgar derecho:</b> apuntar y disparar · Toca el <b>arma</b> para cambiarla.</p>
-  <p class="small">En computadora: WASD para moverte, mouse para apuntar y disparar, Q/E o 1‑5 para cambiar de arma, P para pausar.</p>
-  <button id="play">JUGAR</button>
+  <div class="topbar"><span class="coins">🪙 <span class="coinval">0</span></span></div>
+  <div class="logo">BLOQUEADOS<small>HORDA MUTANTE</small></div>
+  <button id="play" class="big">▶ JUGAR</button>
+  <div class="menurow">
+    <button class="sec" data-go="shop">⬆️ Mejoras</button>
+    <button class="sec" data-go="records">🏆 Récords</button>
+    <button class="sec" data-go="help">❓ Cómo jugar</button>
+    <button class="sec" data-go="settings">⚙️ Ajustes</button>
+  </div>
   <p id="best" class="small"></p>
-  <p class="small">Tip: en Safari usa “Compartir → Agregar a inicio” para jugar en pantalla completa y gira el iPhone en horizontal.</p>
+  <p class="small">Tip: en Safari usa “Compartir → Agregar a inicio” y gira el iPhone en horizontal.</p>
+</div>
+
+<div id="shop" class="screen panel">
+  <div class="phead"><button class="sec back" data-go="menu">← Volver</button><h2>MEJORAS</h2><span class="coins">🪙 <span class="coinval">0</span></span></div>
+  <div class="scroll"><p class="small" style="text-align:center;margin-bottom:10px">Mejoras permanentes: se aplican al inicio de cada partida.</p><div id="shopgrid" class="grid"></div></div>
+</div>
+
+<div id="records" class="screen panel">
+  <div class="phead"><button class="sec back" data-go="menu">← Volver</button><h2>RÉCORDS</h2><span class="coins">🪙 <span class="coinval">0</span></span></div>
+  <div class="scroll"><div id="statgrid" class="stats"></div><table id="runtable"></table></div>
+</div>
+
+<div id="help" class="screen panel">
+  <div class="phead"><button class="sec back" data-go="menu">← Volver</button><h2>CÓMO JUGAR</h2><span style="width:80px"></span></div>
+  <div class="scroll">
+    <h3>Controles</h3>
+    <p>📱 <b>Pulgar izquierdo:</b> moverte. <b>Pulgar derecho:</b> apuntar y disparar. Toca el <b>arma</b> (abajo al centro) para cambiarla.</p>
+    <p>💻 <b>Computadora:</b> WASD para moverte, mouse para apuntar y disparar, Q/E o 1‑5 para cambiar de arma, P para pausar.</p>
+    <h3>Enemigos</h3>
+    <p>🟩 <b>Zombi:</b> lento pero nunca se rinde.</p>
+    <p>🟨 <b>Corredor:</b> rápido y frágil (desde la oleada 3).</p>
+    <p>🟫 <b>Bruto:</b> enorme, resistente y pega fuerte (desde la oleada 5).</p>
+    <p>🤢 <b>Escupidor:</b> mutante lleno de pústulas que te lanza ácido. El ácido deja charcos que hacen daño, ¡no te quedes encima! Al morir también revienta en ácido.</p>
+    <p>☠️ <b>Jefes:</b> cada 10 oleadas llega un mutante gigante que embiste y vomita anillos de baba. Vencerlo da muchas monedas.</p>
+    <h3>Armas</h3>
+    <p>Pistola (infinita) · Metralleta (oleada 2) · Escopeta (oleada 3) · Barriles explosivos (oleada 4) · Rayo (oleada 5). Las cajas que sueltan los enemigos dan munición o vida.</p>
+    <h3>Progreso</h3>
+    <p>⭐ Los enemigos dan <b>experiencia</b>. Al subir de nivel te curas por completo y cada 5 niveles eliges una de 3 <b>tarjetas</b> temporales.</p>
+    <p>🪙 Al terminar cada partida ganas <b>monedas</b> según tus puntos, la oleada y los jefes vencidos. Úsalas en <b>Mejoras</b> para empezar más fuerte.</p>
+    <p>🔥 Encadena bajas rápido para subir el <b>combo</b> y multiplicar tus puntos.</p>
+  </div>
+</div>
+
+<div id="settings" class="screen panel">
+  <div class="phead"><button class="sec back" data-go="menu">← Volver</button><h2>AJUSTES</h2><span style="width:80px"></span></div>
+  <div class="scroll" style="text-align:center">
+    <button id="sound" class="sec">🔊 Sonido: Sí</button><br>
+    <button id="reset" class="sec" style="background:#6a2a22">🗑️ Borrar todo el progreso</button>
+    <p class="small" style="margin-top:14px">Tu progreso se guarda en este navegador. Si borras los datos de Safari se perderá.</p>
+  </div>
 </div>
 
 <div id="pause" class="screen">
@@ -71,10 +149,15 @@
 </div>
 
 <div id="over" class="screen">
-  <h2>TE ATRAPARON</h2>
+  <h2 id="overtitle">TE ATRAPARON</h2>
   <p id="final"></p>
-  <button id="again">OTRA VEZ</button>
-  <button id="tomenu" class="sec">MENÚ</button>
+  <div class="earn" id="earn"></div>
+  <p id="recnote"></p>
+  <div class="row">
+    <button id="again">OTRA VEZ</button>
+    <button class="sec" data-go="shop">⬆️ MEJORAS</button>
+    <button id="tomenu" class="sec">MENÚ</button>
+  </div>
 </div>
 
 <script>
@@ -107,7 +190,7 @@ function initAudio() {
   const C = window.AudioContext || window.webkitAudioContext;
   if (!C) return;
   AC = new C();
-  master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination);
+  master = AC.createGain(); master.gain.value = save.sound ? 0.5 : 0; master.connect(AC.destination);
   noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
   const d = noiseBuf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -137,6 +220,9 @@ const sfx = {
   hurt: () => tone(300, 90, 0.18, 0.25, 'sawtooth'),
   pick: () => { tone(500, 1200, 0.12, 0.18); },
   fire: () => tone(220, 90, 0.3, 0.15, 'triangle'),
+  spit: () => { noise(0.15, 700, 0.25, 4); tone(500, 150, 0.15, 0.12, 'sine'); },
+  splash: () => noise(0.14, 450, 0.18, 3),
+  buy: () => { tone(700, 1400, 0.1, 0.18); setTimeout(() => tone(900, 1800, 0.12, 0.15), 90); },
   wave: () => { tone(300, 600, 0.25, 0.2); setTimeout(() => tone(450, 900, 0.3, 0.2), 180); },
   click: () => tone(900, 700, 0.04, 0.12),
 };
@@ -262,23 +348,52 @@ function collideWalls(e, isPlayer) {
 // ---------- Armas ----------
 const WEAPONS = [
   { id: 'pistol', name: 'Pistola', rate: 0.26, dmg: 24, spd: 950, spread: 0.03, pellets: 1, life: 0.6, unlock: 1, ammo: Infinity, color: '#ffe9a0', snd: 'pistol' },
-  { id: 'uzi', name: 'Metralleta', rate: 0.075, dmg: 15, spd: 1000, spread: 0.12, pellets: 1, life: 0.55, boss: 1, give: 160, color: '#ffd36a', snd: 'uzi' },
-  { id: 'shotgun', name: 'Escopeta', rate: 0.75, dmg: 17, spd: 850, spread: 0.5, pellets: 8, life: 0.28, boss: 2, give: 30, color: '#ffb35a', snd: 'shotgun' },
-  { id: 'barrel', name: 'Barriles', rate: 0.45, boss: 3, give: 5, snd: 'place' },
-  { id: 'rail', name: 'Rayo', rate: 0.95, dmg: 110, boss: 4, give: 16, snd: 'rail' },
+  { id: 'uzi', name: 'Metralleta', rate: 0.075, dmg: 15, spd: 1000, spread: 0.12, pellets: 1, life: 0.55, unlock: 2, give: 160, color: '#ffd36a', snd: 'uzi' },
+  { id: 'shotgun', name: 'Escopeta', rate: 0.75, dmg: 17, spd: 850, spread: 0.5, pellets: 8, life: 0.28, unlock: 3, give: 30, color: '#ffb35a', snd: 'shotgun' },
+  { id: 'barrel', name: 'Barriles', rate: 0.45, unlock: 4, give: 5, snd: 'place' },
+  { id: 'rail', name: 'Rayo', rate: 0.95, dmg: 110, unlock: 5, give: 16, snd: 'rail' },
 ];
+
+// ---------- Guardado ----------
+const SAVE_KEY = 'bloqueados_save_v1';
+function loadSave() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { }
+  d = d || {};
+  d.coins = d.coins | 0; d.up = d.up || {}; d.runs = d.runs || [];
+  d.stats = Object.assign({ games: 0, kills: 0, bosses: 0, coinsEarned: 0, bestWave: 0, bestLevel: 0, time: 0 }, d.stats || {});
+  d.sound = d.sound !== false;
+  return d;
+}
+function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { } }
+const UPGRADES = [
+  { id: 'hp', ic: '❤️', nm: 'Vida', ds: '+10 de vida máxima', max: 10, base: 40, val: 10 },
+  { id: 'dmg', ic: '💥', nm: 'Daño', ds: '+8% de daño', max: 10, base: 60, val: 0.08 },
+  { id: 'speed', ic: '👟', nm: 'Velocidad', ds: '+5% velocidad de movimiento', max: 8, base: 50, val: 0.05 },
+  { id: 'rate', ic: '🔥', nm: 'Cadencia', ds: '+6% velocidad de disparo', max: 10, base: 60, val: 0.06 },
+  { id: 'armor', ic: '🛡️', nm: 'Armadura', ds: '−4% de daño recibido', max: 8, base: 70, val: 0.04 },
+  { id: 'ammo', ic: '📦', nm: 'Cargador', ds: '+15% de munición en cajas', max: 6, base: 50, val: 0.15 },
+  { id: 'luck', ic: '🍀', nm: 'Suerte', ds: '+2% de probabilidad de cajas', max: 6, base: 60, val: 0.02 },
+  { id: 'xp', ic: '⭐', nm: 'Aprendiz', ds: '+10% de experiencia', max: 6, base: 50, val: 0.10 },
+  { id: 'coins', ic: '🪙', nm: 'Codicia', ds: '+10% de monedas por partida', max: 8, base: 80, val: 0.10 },
+];
+const save = loadSave();
+const upLv = id => save.up[id] || 0;
+const upCost = u => Math.round(u.base * Math.pow(1.6, upLv(u.id)));
+const meta = id => { const u = UPGRADES.find(u => u.id === id); return u ? upLv(id) * u.val : 0; };
+const giveOf = i => Math.round(WEAPONS[i].give * (1 + meta('ammo')));
 
 // ---------- Estado ----------
 let state = 'menu';
-let P, enemies, bullets, fireballs, particles, pickups, barrels, beams, floats;
+let P, enemies, bullets, fireballs, puddles, particles, pickups, barrels, beams, floats;
 let level, xp, buffs, pendingCards, bossCount;
 let wave, toSpawn, spawnTimer, waveDelay, score, combo, comboTimer, kills, shake, flowTimer, banner, bannerT;
-let best = +(localStorage.getItem('cvz_best') || 0);
+let bossKills = 0, runTime = 0;
 function newGame() {
   fctx.clearRect(0, 0, WW, WH); paintFloor();
-  P = { x: WW / 2, y: WH / 2, r: 11, hp: 100, max: 100, ang: 0, speed: 160, inv: 0, cd: 0, w: 0,
+  P = { x: WW / 2, y: WH / 2, r: 11, hp: 100 + meta('hp'), max: 100 + meta('hp'), ang: 0, speed: 160, inv: 0, cd: 0, w: 0,
     ammo: WEAPONS.map(w => w.ammo === Infinity ? Infinity : 0), unlocked: [true, false, false, false, false], walk: 0 };
-  enemies = []; bullets = []; fireballs = []; particles = []; pickups = []; barrels = []; beams = []; floats = [];
+  enemies = []; bullets = []; fireballs = []; puddles = []; bossKills = 0; runTime = 0; particles = []; pickups = []; barrels = []; beams = []; floats = [];
   wave = 0; toSpawn = 0; spawnTimer = 0; waveDelay = 1.5; score = 0; combo = 1; comboTimer = 0; kills = 0; shake = 0; flowTimer = 0;
   banner = ''; bannerT = 0;
   level = 1; xp = 0; buffs = []; pendingCards = 0; bossCount = 0;
@@ -298,6 +413,9 @@ function startWave() {
     const name = spawnBoss();
     showBanner('OLEADA ' + wave + '\n☠ JEFE: ' + name + ' ☠', 3);
   } else showBanner('OLEADA ' + wave, 2.2);
+  WEAPONS.forEach((w, i) => {
+    if (w.unlock === wave && !P.unlocked[i]) { P.unlocked[i] = true; P.ammo[i] += giveOf(i); banner += '\n¡Nueva arma: ' + w.name + '!'; bannerT = 3; }
+  });
 }
 const BOSS_NAMES = ['El Carnicero', 'La Bestia Gris', 'Rey Podrido', 'El Coloso', 'Señor del Abismo'];
 function spawnBoss() {
@@ -321,7 +439,7 @@ function spawnEnemy() {
   if (dist2(x, y, P.x, P.y) < 180 * 180) return false;
   const r = Math.random();
   let type = 'zombie';
-  if (wave >= 2 && r < Math.min(0.08 + wave * 0.02, 0.25)) type = 'devil';
+  if (wave >= 2 && r < Math.min(0.08 + wave * 0.02, 0.25)) type = 'spitter';
   else if (wave >= 3 && r < 0.45) type = 'runner';
   else if (wave >= 5 && r < 0.55) type = 'brute';
   const hpMul = 1 + (wave - 1) * 0.12;
@@ -329,9 +447,9 @@ function spawnEnemy() {
     zombie: { r: 11, hp: 45, speed: rand(52, 70), dmg: 10, pts: 10 },
     runner: { r: 10, hp: 28, speed: rand(105, 125), dmg: 8, pts: 15 },
     brute: { r: 16, hp: 260, speed: 42, dmg: 24, pts: 40 },
-    devil: { r: 11, hp: 95, speed: 66, dmg: 12, pts: 30 },
+    spitter: { r: 12, hp: 95, speed: 66, dmg: 12, pts: 30 },
   }[type];
-  const xpv = { zombie: 3, runner: 4, devil: 7, brute: 12 }[type];
+  const xpv = { zombie: 3, runner: 4, spitter: 7, brute: 12 }[type];
   enemies.push({ type, xp: xpv, x, y, r: base.r, hp: base.hp * hpMul, max: base.hp * hpMul, speed: base.speed * (1 + wave * 0.015),
     dmg: base.dmg, pts: base.pts, atk: 0, flash: 0, ang: 0, shoot: rand(1.5, 3), walk: rand(0, 6) });
   return true;
@@ -426,7 +544,7 @@ function updateCam(dt) {
 }
 
 // ---------- Experiencia y tarjetas ----------
-const bonus = stat => { let v = 0; for (const b of buffs) if (b.stat === stat) v += b.val; return v; };
+const bonus = stat => { let v = meta(stat); for (const b of buffs) if (b.stat === stat) v += b.val; return v; };
 const xpNeed = () => 10 + level * 8;
 const CARDS = [
   { stat: 'speed', val: 0.25, waves: 5, ic: '👟', nm: 'Pies Ligeros', ds: '+25% velocidad de movimiento' },
@@ -473,16 +591,15 @@ function openCards() {
 function chooseCard(c) {
   sfx.pick();
   if (c.perm === 'maxhp') { P.max += 25; P.hp = P.max; }
-  else if (c.perm === 'ammo') WEAPONS.forEach((w, i) => { if (i > 0 && P.unlocked[i]) P.ammo[i] += w.give; });
+  else if (c.perm === 'ammo') WEAPONS.forEach((w, i) => { if (i > 0 && P.unlocked[i]) P.ammo[i] += giveOf(i); });
   else buffs.push({ stat: c.stat, val: c.val, waves: c.waves + (toSpawn > 0 || enemies.length ? 1 : 0), ic: c.ic });
   if (pendingCards > 0) openCards();
   else { state = 'play'; show(null); last = performance.now(); }
 }
 function bossDefeated(e) {
-  const idx = WEAPONS.findIndex((w, i) => i > 0 && !P.unlocked[i]);
-  let msg = '¡JEFE DERROTADO!';
-  if (idx > 0) { P.unlocked[idx] = true; P.ammo[idx] += WEAPONS[idx].give; P.w = idx; msg += '\nNueva arma: ' + WEAPONS[idx].name; }
-  else { WEAPONS.forEach((w, i) => { if (i > 0) P.ammo[i] += w.give; }); msg += '\nMunición para todo'; }
+  bossKills++;
+  WEAPONS.forEach((w, i) => { if (i > 0 && P.unlocked[i]) P.ammo[i] += giveOf(i); });
+  const msg = '¡JEFE DERROTADO!\n+' + Math.round(60 * (1 + meta('coins'))) + ' 🪙  ·  vida y munición';
   P.hp = P.max;
   showBanner(msg, 3.5); sfx.wave(); shake = 16;
   for (let i = 0; i < 4; i++) pickups.push({ x: e.x + rand(-30, 30), y: e.y + rand(-30, 30), kind: i % 2 ? 'hp' : 'ammo', t: 20 });
@@ -530,7 +647,7 @@ function damageEnemy(e, dmg, dx, dy) {
   if (e.hp <= 0) return;
   e.hp -= dmg * (1 + bonus('dmg')); e.flash = 0.08;
   if (e.type !== 'boss') { e.x += dx * 4; e.y += dy * 4; }
-  const blood = e.type === 'devil' ? '#3a1d55' : '#6a1010';
+  const blood = e.type === 'spitter' ? '#9acd32' : e.type === 'boss' ? '#5a3a7a' : '#6a1010';
   for (let i = 0; i < 4; i++) particles.push({ x: e.x, y: e.y, vx: dx * rand(40, 140) + rand(-60, 60), vy: dy * rand(40, 140) + rand(-60, 60), life: 0.35, max: 0.35, c: blood, s: 3 });
   sfx.hit();
   if (e.hp <= 0) killEnemy(e);
@@ -543,9 +660,10 @@ function killEnemy(e) {
   const pts = e.pts * Math.max(1, Math.floor(combo / 2));
   score += pts;
   floats.push({ x: e.x, y: e.y - 20, t: 0.9, txt: '+' + pts });
-  splat(e.x, e.y, e.type === 'devil' ? 'rgba(70,30,100,.75)' : 'rgba(110,14,14,.75)', 18, e.r + 10);
-  for (let i = 0; i < 10; i++) particles.push({ x: e.x, y: e.y, vx: rand(-130, 130), vy: rand(-130, 130), life: 0.5, max: 0.5, c: e.type === 'devil' ? '#b03030' : '#5d7a3a', s: 4 });
-  const dropChance = 0.1 + (e.type === 'brute' ? 0.4 : 0) + (e.type === 'devil' ? 0.12 : 0);
+  splat(e.x, e.y, e.type === 'spitter' ? 'rgba(120,160,20,.7)' : e.type === 'boss' ? 'rgba(80,50,110,.8)' : 'rgba(110,14,14,.75)', 18, e.r + 10);
+  if (e.type === 'spitter') { puddles.push({ x: e.x, y: e.y, r: 30, t: 2.5, max: 2.5 }); sfx.splash(); }
+  for (let i = 0; i < 10; i++) particles.push({ x: e.x, y: e.y, vx: rand(-130, 130), vy: rand(-130, 130), life: 0.5, max: 0.5, c: e.type === 'spitter' ? '#b4dc32' : '#5d7a3a', s: 4 });
+  const dropChance = 0.1 + meta('luck') + (e.type === 'brute' ? 0.4 : 0) + (e.type === 'spitter' ? 0.12 : 0);
   if (Math.random() < dropChance) {
     const needHp = P.hp < P.max * 0.6;
     pickups.push({ x: e.x, y: e.y, kind: needHp && Math.random() < 0.6 ? 'hp' : 'ammo', t: 14 });
@@ -606,7 +724,7 @@ function update(dt) {
     shooting = mouse.down;
   } else if (ml > 0.1) P.ang = Math.atan2(my, mx);
   if (keys.Space) shooting = true;
-  P.cd -= dt; P.inv -= dt;
+  P.cd -= dt; P.inv -= dt; runTime += dt;
   if (shooting) fire();
 
   // oleadas
@@ -629,7 +747,7 @@ function update(dt) {
 
   // enemigos
   for (const e of enemies) {
-    e.flash -= dt; e.atk -= dt; e.walk += dt * e.speed * 0.12;
+    e.flash -= dt; e.atk -= dt; if (e.mouthT > 0) e.mouthT -= dt; e.walk += dt * e.speed * 0.12;
     let dx = P.x - e.x, dy = P.y - e.y;
     const d = Math.hypot(dx, dy) || 1;
     let dir = flowDir(e);
@@ -654,7 +772,7 @@ function update(dt) {
         if (Math.random() < 0.5 && d < 450 && lineOfSight(e.x, e.y, P.x, P.y)) e.windup = 0.7;
         else {
           const n = 10 + bossCount * 2, a0 = rand(0, 6.28);
-          for (let k = 0; k < n; k++) { const a = a0 + k / n * 6.283; fireballs.push({ x: e.x, y: e.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, life: 3.5 }); }
+          for (let k = 0; k < n; k++) { const a = a0 + k / n * 6.283; fireballs.push({ kind: 'orb', x: e.x, y: e.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, life: 3.5 }); }
           sfx.fire(); shake = Math.max(shake, 6);
         }
       }
@@ -674,22 +792,23 @@ function update(dt) {
     }
     const vl = Math.hypot(vx, vy) || 1;
     let spd = e.speed;
-    if (e.type === 'devil' && d < 170 && lineOfSight(e.x, e.y, P.x, P.y)) spd *= 0.2;
+    if (e.type === 'spitter' && d < 170 && lineOfSight(e.x, e.y, P.x, P.y)) spd *= 0.2;
     e.x += vx / vl * spd * dt; e.y += vy / vl * spd * dt;
     e.ang = Math.atan2(dy, dx);
     { const qx = e.x - P.x, qy = e.y - P.y, qd = Math.hypot(qx, qy) || 0.01, rr = e.r + P.r;
       if (qd < rr) { e.x += qx / qd * (rr - qd); e.y += qy / qd * (rr - qd); } }
     collideWalls(e, false);
     if (d < e.r + P.r + 3 && e.atk <= 0) { hurtPlayer(e.dmg); e.atk = 0.8; }
-    if (e.type === 'devil') {
+    if (e.type === 'spitter') {
       e.shoot -= dt;
-      if (e.shoot <= 0 && d < 420) {
+      if (e.shoot <= 0 && d < 400) {
         if (lineOfSight(e.x, e.y, P.x, P.y)) {
-          const a = Math.atan2(dy, dx);
-          fireballs.push({ x: e.x, y: e.y, vx: Math.cos(a) * 230, vy: Math.sin(a) * 230, life: 2.5 });
-          sfx.fire();
+          // escupe ácido en parábola hacia donde está el jugador
+          const tx = P.x + rand(-18, 18), ty = P.y + rand(-18, 18), dd = Math.hypot(tx - e.x, ty - e.y) || 1, sp = 250;
+          fireballs.push({ kind: 'acid', x: e.x, y: e.y, vx: (tx - e.x) / dd * sp, vy: (ty - e.y) / dd * sp, life: dd / sp, max: dd / sp });
+          sfx.spit(); e.mouthT = 0.3;
         }
-        e.shoot = rand(1.8, 3.2);
+        e.shoot = rand(2, 3.4);
       }
     }
   }
@@ -725,12 +844,35 @@ function update(dt) {
   // bolas de fuego
   for (const f of fireballs) {
     f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
-    if (Math.random() < 0.6) particles.push({ x: f.x, y: f.y, vx: rand(-20, 20), vy: rand(-20, 20), life: 0.3, max: 0.3, c: Math.random() < 0.5 ? '#ff7a2a' : '#ffd040', s: 4 });
+    if (f.kind === 'acid') {
+      if (Math.random() < 0.3) particles.push({ x: f.x, y: f.y - 24 * Math.sin(Math.PI * clamp(1 - f.life / f.max, 0, 1)), vx: rand(-15, 15), vy: rand(-15, 15), life: 0.25, max: 0.25, c: '#c8f04a', s: 3 });
+      if (f.life <= 0) {
+        sfx.splash();
+        for (let i = 0; i < 8; i++) particles.push({ x: f.x, y: f.y, vx: rand(-90, 90), vy: rand(-90, 90), life: 0.3, max: 0.3, c: '#b4dc32', s: 3 });
+        if (tileAt(f.x, f.y) !== WALL) {
+          puddles.push({ x: f.x, y: f.y, r: 28, t: 4, max: 4 });
+          if (dist2(f.x, f.y, P.x, P.y) < (28 + P.r) ** 2) hurtPlayer(10);
+        }
+      }
+      continue;
+    }
+    if (Math.random() < 0.6) particles.push({ x: f.x, y: f.y, vx: rand(-20, 20), vy: rand(-20, 20), life: 0.3, max: 0.3, c: Math.random() < 0.5 ? '#9a5ad0' : '#c8f04a', s: 4 });
     if (tileAt(f.x, f.y) === WALL) f.life = 0;
     else if (dist2(f.x, f.y, P.x, P.y) < (P.r + 6) ** 2) { hurtPlayer(14); f.life = 0; }
     else for (const br of barrels) if (dist2(f.x, f.y, br.x, br.y) < br.r * br.r) { br.fuse = 0.05; f.life = 0; }
   }
   fireballs = fireballs.filter(f => f.life > 0);
+  // charcos de ácido
+  for (const pd of puddles) {
+    pd.t -= dt;
+    if (dist2(pd.x, pd.y, P.x, P.y) < (pd.r * 0.9) ** 2) {
+      P.hp -= 9 * dt * Math.max(0.3, 1 - bonus('armor')); P.acid = 0.15;
+      if (Math.random() < 0.2) particles.push({ x: P.x + rand(-8, 8), y: P.y, vx: 0, vy: -30, life: 0.3, max: 0.3, c: '#c8f04a', s: 3 });
+      if (P.hp <= 0) { gameOver(); return; }
+    }
+  }
+  puddles = puddles.filter(pd => pd.t > 0);
+  if (P.acid > 0) P.acid -= dt;
 
   // barriles
   for (const b of barrels) if (b.fuse >= 0) { b.fuse -= dt; if (b.fuse < 0) { b.dead = true; explode(b.x, b.y); } }
@@ -750,8 +892,8 @@ function update(dt) {
         if (opts.length === 0) { score += 50; floats.push({ x: P.x, y: P.y - 24, t: 1, txt: '+50' }); }
         else {
           const i = opts[(Math.random() * opts.length) | 0];
-          P.ammo[i] += WEAPONS[i].give;
-          floats.push({ x: P.x, y: P.y - 24, t: 1, txt: '+' + WEAPONS[i].give + ' ' + WEAPONS[i].name, c: '#ffe27a' });
+          P.ammo[i] += giveOf(i);
+          floats.push({ x: P.x, y: P.y - 24, t: 1, txt: '+' + giveOf(i) + ' ' + WEAPONS[i].name, c: '#ffe27a' });
         }
       }
     }
@@ -792,7 +934,7 @@ function drawGun(x, y, ang, z, len) {
   ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len - z); ctx.stroke();
 }
 function drawPerson(o, opts) {
-  const { body, head, legs, flash, s = 1 } = opts;
+  const { body, head, legs, flash, s = 1 } = opts, bw = opts.bw || 1;
   const bob = Math.sin(o.walk || 0) * 1.5;
   shadow(o.x, o.y, o.r);
   const behind = Math.sin(o.ang) < -0.3;
@@ -801,7 +943,7 @@ function drawPerson(o, opts) {
   box(o.x - 4 * s, o.y, 6 * s, 6 * s, 7 * s, Math.max(0, bob), legs, flash);
   box(o.x + 4 * s, o.y, 6 * s, 6 * s, 7 * s, Math.max(0, -bob), legs, flash);
   // cuerpo
-  box(o.x, o.y, 18 * s, 11 * s, 13 * s, 6 * s, body, flash);
+  box(o.x, o.y, 18 * s * bw, 11 * s, 13 * s, 6 * s, body, flash);
   // cabeza
   const hz = 18 * s;
   box(o.x, o.y, 16 * s, 13 * s, 14 * s, hz, head, flash);
@@ -812,7 +954,20 @@ function drawPerson(o, opts) {
     ctx.fillStyle = opts.eyes || '#1a1a1a';
     ctx.fillRect(o.x + ex - 5 * s, fy, 3 * s, 3 * s);
     ctx.fillRect(o.x + ex + 2 * s, fy, 3 * s, 3 * s);
-    if (opts.mouth) { ctx.fillStyle = opts.mouth; ctx.fillRect(o.x + ex - 3 * s, fy + 5 * s, 6 * s, 2 * s); }
+    if (opts.spit) {
+      const open = (o.mouthT || 0) > 0 ? 2 : 0;
+      ctx.fillStyle = '#1f2a08'; ctx.fillRect(o.x + ex - 4 * s, fy + 4 * s, 8 * s, (3 + open) * s);
+      ctx.fillStyle = '#c8f04a'; ctx.fillRect(o.x + ex + 1 * s, fy + (7 + open) * s, 2 * s, 3 * s);
+    } else if (opts.mouth) { ctx.fillStyle = opts.mouth; ctx.fillRect(o.x + ex - 3 * s, fy + 5 * s, 6 * s, 2 * s); }
+  }
+  if (opts.spit && !flash) {
+    // pústulas
+    ctx.fillStyle = opts.pus || '#d8ec6a';
+    const hy = o.y - 6.5 * s - hz - 14 * s, by = o.y - 5.5 * s - 19 * s;
+    ctx.beginPath();
+    ctx.arc(o.x - 4 * s, hy + 3 * s, 2.2 * s, 0, 6.283); ctx.arc(o.x + 5 * s, hy + 6 * s, 1.6 * s, 0, 6.283);
+    ctx.arc(o.x - 7 * s * bw, by + 4 * s, 2 * s, 0, 6.283); ctx.arc(o.x + 6 * s * bw, by + 3 * s, 2.6 * s, 0, 6.283);
+    ctx.fill();
   }
   if (opts.horns) {
     ctx.fillStyle = flash ? '#fff' : '#2a0d0d';
@@ -826,8 +981,8 @@ const ENEMY_LOOK = {
   zombie: { body: '#4f6b3a', head: '#8fae6a', legs: '#3b3a4f', eyes: '#c22', mouth: '#3a1a1a' },
   runner: { body: '#7a5a2e', head: '#b6c47a', legs: '#4a3020', eyes: '#ff3', mouth: '#3a1a1a' },
   brute: { body: '#3f4f2a', head: '#748c55', legs: '#2c2c3c', eyes: '#f22', mouth: '#2a0a0a', s: 1.45 },
-  devil: { body: '#7a1418', head: '#c43030', legs: '#3a0a0a', eyes: '#ffdb3a', horns: true },
-  boss: { body: '#4a2a5e', head: '#9a7ab0', legs: '#221830', eyes: '#ff3b3b', mouth: '#1a0a1a', horns: true, s: 2.3 },
+  spitter: { body: '#5f6e22', head: '#a9bc3a', legs: '#3a3a22', eyes: '#f4f4d0', spit: true, bw: 1.3, s: 1.12 },
+  boss: { body: '#4e3a62', head: '#8d7aa8', legs: '#221830', eyes: '#c6ff3a', spit: true, pus: '#c890e8', bw: 1.15, s: 2.3 },
 };
 
 function draw() {
@@ -838,6 +993,15 @@ function draw() {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(floor, 0, 0);
 
+  // charcos de ácido
+  for (const pd of puddles) {
+    const a = clamp(pd.t / 0.6, 0, 1) * clamp((pd.max - pd.t) / 0.15, 0, 1);
+    ctx.fillStyle = `rgba(150,200,30,${0.45 * a})`;
+    ctx.beginPath(); ctx.ellipse(pd.x, pd.y, pd.r, pd.r * 0.6, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = `rgba(220,255,120,${0.6 * a})`;
+    const tt = performance.now() / 300;
+    for (let i = 0; i < 3; i++) { const bx = pd.x + Math.cos(tt + i * 2.1 + pd.x) * pd.r * 0.5, by = pd.y + Math.sin(tt * 1.3 + i * 2.1) * pd.r * 0.3; ctx.fillRect(bx - 1.5, by - 1.5, 3, 3); }
+  }
   // recogibles (en el suelo)
   for (const p of pickups) {
     if (p.t < 3 && Math.floor(p.t * 8) % 2) continue;
@@ -874,7 +1038,7 @@ function draw() {
       if (e.hp < e.max && e.type !== 'boss') {
         const s = L.s || 1, bw = 22 * s, by = e.y - 42 * s;
         ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(e.x - bw / 2, by, bw, 3);
-        ctx.fillStyle = e.type === 'devil' ? '#ff6a3a' : '#9be05a'; ctx.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.max), 3);
+        ctx.fillStyle = e.type === 'spitter' ? '#d8f04a' : '#9be05a'; ctx.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.max), 3);
       }
     } else if (it.k === 'b') {
       const b = it.o, blink = b.fuse >= 0 && Math.floor(performance.now() / 60) % 2;
@@ -900,8 +1064,15 @@ function draw() {
     ctx.strokeStyle = `rgba(255,255,255,${a})`; ctx.lineWidth = 2.5 * a; ctx.stroke();
   }
   for (const f of fireballs) {
-    ctx.fillStyle = '#ff7a2a'; ctx.beginPath(); ctx.arc(f.x, f.y - 14, 6, 0, 6.283); ctx.fill();
-    ctx.fillStyle = '#ffe070'; ctx.beginPath(); ctx.arc(f.x, f.y - 14, 3, 0, 6.283); ctx.fill();
+    if (f.kind === 'acid') {
+      const k = clamp(1 - f.life / f.max, 0, 1), h = 14 + 40 * Math.sin(Math.PI * k) * Math.min(1, f.max);
+      ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(f.x, f.y, 5, 2.5, 0, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#8fb81e'; ctx.beginPath(); ctx.arc(f.x, f.y - h, 6, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#e0ff7a'; ctx.beginPath(); ctx.arc(f.x - 1.5, f.y - h - 1.5, 2.5, 0, 6.283); ctx.fill();
+    } else {
+      ctx.fillStyle = '#7a3ab0'; ctx.beginPath(); ctx.arc(f.x, f.y - 14, 6, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#c8f04a'; ctx.beginPath(); ctx.arc(f.x, f.y - 14, 3, 0, 6.283); ctx.fill();
+    }
   }
   for (const p of particles) {
     ctx.globalAlpha = clamp(p.life / p.max, 0, 1);
@@ -948,6 +1119,8 @@ function drawHUD() {
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 16px -apple-system,sans-serif';
   ctx.fillText('Puntos ' + score, L, Tp + 46);
+  const sw = ctx.measureText('Puntos ' + score).width;
+  ctx.fillStyle = '#ffcf4a'; ctx.font = 'bold 14px -apple-system,sans-serif'; ctx.fillText('🪙 ' + coinsFor(), L + sw + 14, Tp + 46);
   ctx.font = '13px -apple-system,sans-serif';
   ctx.fillStyle = '#d8ccb8';
   ctx.fillText('Oleada ' + wave + '  ·  Quedan ' + (enemies.length + toSpawn), L, Tp + 64);
@@ -994,8 +1167,7 @@ function drawHUD() {
     ctx.fillRect(wb.x + wb.w / 2 - n * 7 + i * 14 + 2, wb.y + 48, 10, 4);
   }
   ctx.font = '11px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.5)';
-  const nextLocked = WEAPONS.find((ww, i) => i > 0 && !P.unlocked[i]);
-  ctx.fillText(nextLocked ? 'Próxima arma: vence al jefe (oleada ' + (bossCount + 1) * 10 + ')' : 'toca para cambiar', wb.x + wb.w / 2, wb.y - 6);
+  ctx.fillText('toca para cambiar', wb.x + wb.w / 2, wb.y - 6);
   // joysticks
   for (const k of ['move', 'aim']) {
     const s = sticks[k];
@@ -1024,6 +1196,7 @@ function drawHUD() {
     ctx.globalAlpha = 1;
   }
   // viñeta roja al recibir daño
+  if (P.acid > 0) { ctx.fillStyle = 'rgba(150,220,30,.12)'; ctx.fillRect(0, 0, W, H); }
   if (P.hp < P.max * 0.3 || P.inv > 0.2) {
     const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
     g.addColorStop(0, 'rgba(160,0,0,0)'); g.addColorStop(1, `rgba(160,0,0,${P.inv > 0.2 ? 0.45 : 0.25})`);
@@ -1033,23 +1206,94 @@ function drawHUD() {
 
 // ---------- Bucle y pantallas ----------
 const $ = id => document.getElementById(id);
-function show(id) { for (const s of ['menu', 'pause', 'over', 'cards']) $(s).classList.toggle('on', s === id); }
+const SCREENS = ['menu', 'pause', 'over', 'cards', 'shop', 'records', 'help', 'settings'];
+function show(id) { for (const s of SCREENS) $(s).classList.toggle('on', s === id); }
+function coinsFor() { return Math.floor((Math.floor(score / 40) + wave * 4 + bossKills * 60) * (1 + meta('coins'))); }
+const fmt = n => n.toLocaleString('es-MX');
+function refreshCoins() { document.querySelectorAll('.coinval').forEach(el => el.textContent = fmt(save.coins)); }
 function startGame() { initAudio(); newGame(); state = 'play'; show(null); last = performance.now(); }
 function pauseGame() { if (state !== 'play') return; state = 'pause'; sticks.move = sticks.aim = null; mouse.down = false; show('pause'); }
 function resumeGame() { state = 'play'; show(null); last = performance.now(); }
-function gameOver() {
-  if (state !== 'play') return;
-  state = 'over'; sticks.move = sticks.aim = null; mouse.down = false;
-  const rec = score > best;
-  if (rec) { best = score; localStorage.setItem('cvz_best', best); }
-  $('final').innerHTML = `Puntos: <b>${score}</b> · Oleada: <b>${wave}</b> · Bajas: <b>${kills}</b><br>${rec ? '🏆 ¡Nuevo récord!' : 'Récord: ' + best}`;
-  setTimeout(() => show('over'), 700);
+function endRun(quit) {
+  if (state !== 'play' && state !== 'pause' && state !== 'cards') return;
+  state = 'over'; sticks.move = sticks.aim = null; mouse.down = false; bannerT = 0;
+  const earned = coinsFor();
+  const prevBest = save.runs.length ? save.runs[0].score : 0;
+  const run = { score, wave, level, kills, coins: earned, date: Date.now() };
+  save.coins += earned;
+  const st = save.stats;
+  st.games++; st.kills += kills; st.bosses += bossKills; st.coinsEarned += earned; st.time += runTime;
+  st.bestWave = Math.max(st.bestWave, wave); st.bestLevel = Math.max(st.bestLevel, level);
+  if (score > 0) save.runs.push(run);
+  save.runs.sort((a, b) => b.score - a.score); save.runs = save.runs.slice(0, 10);
+  persist();
+  const pos = save.runs.indexOf(run);
+  $('overtitle').textContent = quit ? 'PARTIDA TERMINADA' : 'TE ATRAPARON';
+  $('final').innerHTML = `Puntos: <b>${fmt(score)}</b> · Oleada: <b>${wave}</b> · Nivel: <b>${level}</b> · Bajas: <b>${kills}</b>`;
+  $('earn').textContent = '+' + fmt(earned) + ' 🪙';
+  $('recnote').innerHTML = score > prevBest && score > 0 ? '🏆 <b>¡Nuevo récord!</b>' : pos >= 0 ? `Quedaste en el lugar <b>#${pos + 1}</b> de tus récords` : 'Récord: ' + fmt(prevBest);
+  refreshCoins();
+  setTimeout(() => { if (state === 'over') show('over'); }, quit ? 0 : 700);
 }
-function updateBest() { $('best').textContent = best ? 'Récord: ' + best : ''; }
+function gameOver() { endRun(false); }
+function updateBest() {
+  const b = save.runs.length ? save.runs[0] : null;
+  $('best').textContent = b ? `Récord: ${fmt(b.score)} puntos · oleada ${b.wave}` : '';
+  refreshCoins();
+}
+function renderShop() {
+  const g = $('shopgrid'); g.innerHTML = '';
+  for (const u of UPGRADES) {
+    const lv = upLv(u.id), maxed = lv >= u.max, cost = upCost(u);
+    const el = document.createElement('div'); el.className = 'up';
+    el.innerHTML = `<div class="ic">${u.ic}</div><div class="info"><div class="nm">${u.nm} <span class="small">Nv ${lv}/${u.max}</span></div>
+      <div class="ds">${u.ds}</div><div class="pips">${Array.from({ length: u.max }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>`;
+    const b = document.createElement('button'); b.className = 'buy';
+    b.textContent = maxed ? 'MÁX' : '🪙 ' + fmt(cost);
+    b.disabled = maxed || save.coins < cost;
+    b.onclick = () => {
+      if (upLv(u.id) >= u.max || save.coins < upCost(u)) return;
+      save.coins -= upCost(u); save.up[u.id] = upLv(u.id) + 1; persist();
+      initAudio(); sfx.buy(); refreshCoins(); renderShop();
+    };
+    el.appendChild(b); g.appendChild(el);
+  }
+}
+function renderRecords() {
+  const st = save.stats, best = save.runs.length ? save.runs[0].score : 0;
+  const mins = Math.floor(st.time / 60);
+  const items = [['Mejor puntuación', fmt(best)], ['Mejor oleada', st.bestWave], ['Mejor nivel', st.bestLevel], ['Partidas', st.games],
+    ['Bajas totales', fmt(st.kills)], ['Jefes vencidos', st.bosses], ['Monedas ganadas', fmt(st.coinsEarned)], ['Tiempo jugado', mins >= 60 ? Math.floor(mins / 60) + ' h ' + (mins % 60) + ' min' : mins + ' min']];
+  $('statgrid').innerHTML = items.map(([k, v]) => `<div class="st"><b>${v}</b><span>${k}</span></div>`).join('');
+  const t = $('runtable');
+  if (!save.runs.length) { t.innerHTML = '<tr><td>Aún no tienes partidas. ¡Ve a jugar!</td></tr>'; return; }
+  const last = save.runs.reduce((a, r) => r.date > a.date ? r : a, save.runs[0]);
+  t.innerHTML = '<tr><th>#</th><th>Puntos</th><th>Oleada</th><th>Nivel</th><th>Bajas</th><th>Fecha</th></tr>' +
+    save.runs.map((r, i) => `<tr class="${r === last ? 'me' : ''}"><td>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td><td><b>${fmt(r.score)}</b></td><td>${r.wave}</td><td>${r.level}</td><td>${r.kills}</td>` +
+      `<td>${new Date(r.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</td></tr>`).join('');
+}
+function renderSettings() { $('sound').textContent = save.sound ? '🔊 Sonido: Sí' : '🔇 Sonido: No'; }
+function go(id) {
+  if (id === 'menu') { state = 'menu'; updateBest(); }
+  if (id === 'shop') renderShop();
+  if (id === 'records') renderRecords();
+  if (id === 'settings') renderSettings();
+  refreshCoins(); show(id);
+}
+document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { initAudio(); sfx.click(); go(b.dataset.go); });
 $('play').onclick = startGame;
 $('again').onclick = startGame;
 $('resume').onclick = resumeGame;
-$('quit').onclick = $('tomenu').onclick = () => { state = 'menu'; updateBest(); show('menu'); };
+$('quit').onclick = () => endRun(true);
+$('tomenu').onclick = () => go('menu');
+$('sound').onclick = () => { save.sound = !save.sound; persist(); initAudio(); if (master) master.gain.value = save.sound ? 0.5 : 0; renderSettings(); };
+$('reset').onclick = () => {
+  if (!confirm('¿Seguro que quieres borrar tus monedas, mejoras y récords? No se puede deshacer.')) return;
+  const snd = save.sound;
+  localStorage.removeItem(SAVE_KEY);
+  Object.assign(save, loadSave(), { sound: snd });
+  persist(); go('menu');
+};
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
 updateBest();
 

@@ -1,6 +1,6 @@
 {
-  "name": "Cubos vs Zombis",
-  "short_name": "Cubos vs Zombis",
+  "name": "Bloqueados: Horda Mutante",
+  "short_name": "Bloqueados",
   "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "landscape",
