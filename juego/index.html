@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bloqueados">
 <meta name="theme-color" content="#14110f">
-<meta name="game-version" content="1.5.0">
+<meta name="game-version" content="1.6.0">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -134,7 +134,7 @@
     <p>🤢 <b>Escupidor:</b> mutante lleno de pústulas que te lanza ácido. El ácido deja charcos que hacen daño, ¡no te quedes encima! Al morir también revienta en ácido.</p>
     <p>☠️ <b>Jefes:</b> cada 10 oleadas llega un mutante gigante que embiste y vomita anillos de baba. Vencerlo da muchas monedas.</p>
     <h3>Armas</h3>
-    <p>Pistola (infinita) · Metralleta (oleada 2) · Escopeta (oleada 3) · Barriles explosivos (oleada 4) · Rayo (oleada 5). Las cajas que sueltan los enemigos dan munición o vida.</p>
+    <p>Empiezas con la pistola (balas infinitas). Los enemigos sueltan <b>cajas</b> (y cada 10 bajas tuyas cae una segura). Cada caja que recoges suma para tu siguiente arma: <b>3 cajas</b> Metralleta · <b>7</b> Escopeta · <b>12</b> Barriles explosivos · <b>18</b> Rayo. Las cajas también dan vida o munición.</p>
     <h3>En línea</h3>
     <p>🌐 Toca <b>EN LÍNEA</b> → <b>CREAR SALA</b> y comparte el código de 4 letras (o el enlace) con tus amigos. Ellos tocan <b>EN LÍNEA</b>, escriben el código y entran, incluso con la partida ya empezada. Hasta 4 jugadores.</p>
     <p>💀 Si caes, reapareces al empezar la siguiente oleada. Pierden cuando caen todos.</p>
@@ -449,6 +449,9 @@ const upCost = u => Math.round(u.base * Math.pow(1.6, upLv(u.id)));
 const myMeta = () => { const m = {}; for (const u of UPGRADES) m[u.id] = upLv(u.id); return m; };
 const metaOf = (pl, id) => { const u = UPGRADES.find(u => u.id === id); return u ? (+(pl.meta && pl.meta[id]) || 0) * u.val : 0; };
 const giveOf = (pl, i) => Math.round(WEAPONS[i].give * (1 + metaOf(pl, 'ammo')));
+// Armas por cajas: cada caja recogida suma; al llegar a la meta se desbloquea la siguiente arma
+const CRATE_STEPS = [0, 3, 7, 12, 18];
+const nextLockedWeapon = pl => { for (let i = 1; i < WEAPONS.length; i++) if (!pl.unlocked[i]) return i; return -1; };
 const myName = () => (save.name || '').trim() || 'Jugador';
 
 // ---------- Red (PeerJS: un teléfono es anfitrión y corre la partida) ----------
@@ -501,6 +504,10 @@ const FX = {
   splash(x, y) { sfx.splash(); for (let i = 0; i < 8; i++) addP(x, y, rand(-90, 90), rand(-90, 90), 0.3, '#b4dc32', 3); },
   float(x, y, txt, c, pid) { if (pid && !isMe(pid)) return; floats.push({ x, y, t: 1, txt, c }); },
   banner(txt, d, snd) { banner = txt; bannerT = d; bannerMax = d; if (snd) sfx[snd](); },
+  weapon(pid, i, name) {
+    if (isMe(pid)) { banner = '¡NUEVA ARMA!\n' + WEAPONS[i].name.toUpperCase(); bannerT = 2.4; bannerMax = 2.4; sfx.wave(); if (P && WEAPONS[i].id !== 'barrel') P.w = i; }
+    else toasts.push({ txt: name + ' consiguió ' + WEAPONS[i].name, t: 3 });
+  },
   newEnemy(ti) { warn = { ti, t: 3.85 }; }, // aviso de nuevo zombi (aparece tras el letrero de oleada)
   hurt(pid, x, y) { splat(x, y, 'rgba(110,14,14,.5)', 6, 12); if (isMe(pid)) { shake = Math.max(shake, 7); sfx.hurt(); hurtFlash = 0.35; } },
   level(pid, x, y, lv) {
@@ -523,9 +530,13 @@ function makePlayer(id, name, meta, ci) {
   const max = 100 + (+meta.hp || 0) * 10;
   const pl = { id, name: String(name || 'Jugador').slice(0, 12), ci, meta, x: WW / 2 + rand(-40, 40), y: WH / 2 + rand(-15, 15), r: 11,
     hp: max, max, ang: 0, speed: 160, inv: 1.5, cd: 0, w: 0, walk: 0, acid: 0,
-    ammo: WEAPONS.map(w => w.ammo === Infinity ? Infinity : 0), unlocked: WEAPONS.map(w => w.unlock <= Math.max(1, wave)),
-    level: 1, xp: 0, buffs: [], pendingCards: 0, dead: false, kills: 0, input: { mx: 0, my: 0, a: 0, sh: false } };
-  pl.unlocked.forEach((u, i) => { if (u && i > 0) pl.ammo[i] = giveOf(pl, i); });
+    ammo: WEAPONS.map(w => w.ammo === Infinity ? Infinity : 0), unlocked: WEAPONS.map((w, i) => i === 0),
+    level: 1, xp: 0, buffs: [], pendingCards: 0, dead: false, kills: 0, crates: 0, killStreak: 0, input: { mx: 0, my: 0, a: 0, sh: false } };
+  // quien entra a media partida en línea arranca con el progreso del compañero más atrasado
+  if (players.length) {
+    pl.crates = Math.min(...players.map(p => p.crates || 0));
+    WEAPONS.forEach((w, i) => { if (i > 0 && pl.crates >= CRATE_STEPS[i]) { pl.unlocked[i] = true; pl.ammo[i] = giveOf(pl, i); } });
+  }
   collideWalls(pl, true);
   return pl;
 }
@@ -567,12 +578,6 @@ function startWave() {
     msg += '\n☠ JEFE: ' + spawnBoss() + ' ☠';
   }
   waveTotal = toSpawn + enemies.length;
-  WEAPONS.forEach((w, i) => {
-    if (w.unlock !== wave) return;
-    let any = false;
-    for (const pl of players) if (!pl.unlocked[i]) { pl.unlocked[i] = true; pl.ammo[i] += giveOf(pl, i); any = true; }
-    if (any) msg += '\n¡Nueva arma: ' + w.name + '!';
-  });
   fx('banner', msg, msg.includes('\n') ? 3 : 2.2, 'wave');
   const FIRST = { 2: 'spitter', 3: 'runner', 5: 'brute', 10: 'boss' };
   if (FIRST[wave]) fx('newEnemy', TYPES.indexOf(FIRST[wave]));
@@ -872,7 +877,11 @@ function killEnemy(e, pl) {
   fx('kill', r0(e.x), r0(e.y), TYPES.indexOf(e.type), e.r, pts);
   if (e.type === 'spitter') puddles.push({ x: e.x, y: e.y, r: 30, t: 2.5, max: 2.5 });
   const dropChance = 0.1 + (pl ? metaOf(pl, 'luck') : 0) + (e.type === 'brute' ? 0.4 : 0) + (e.type === 'spitter' ? 0.12 : 0);
-  if (Math.random() < dropChance) {
+  // cada 10 bajas tuyas cae una caja segura
+  if (pl) pl.killStreak = (pl.killStreak || 0) + 1;
+  const guaranteed = pl && pl.killStreak >= 10;
+  if (guaranteed) pl.killStreak = 0;
+  if (guaranteed || Math.random() < dropChance) {
     const needHp = players.some(p => !p.dead && p.hp < p.max * 0.6);
     pickups.push({ x: e.x, y: e.y, kind: needHp && Math.random() < 0.6 ? 'hp' : 'ammo', t: 14 });
   }
@@ -1089,6 +1098,13 @@ function update(dt) {
       if (bonus(pl, 'magnet') && dist2(p.x, p.y, pl.x, pl.y) < (pr * 2.5) ** 2) { const a = Math.atan2(pl.y - p.y, pl.x - p.x); p.x += Math.cos(a) * 260 * dt; p.y += Math.sin(a) * 260 * dt; }
       if (dist2(p.x, p.y, pl.x, pl.y) >= pr * pr) continue;
       p.t = 0; fx('pick', pl.id);
+      pl.crates = (pl.crates || 0) + 1;
+      const ni = nextLockedWeapon(pl);
+      if (ni > 0 && pl.crates >= CRATE_STEPS[ni]) {
+        pl.unlocked[ni] = true; pl.ammo[ni] += giveOf(pl, ni); if (WEAPONS[ni].id !== 'barrel') pl.w = ni;
+        fx('weapon', pl.id, ni, pl.name);
+        continue;
+      }
       if (p.kind === 'hp') { pl.hp = Math.min(pl.max, pl.hp + 30); fx('float', r0(pl.x), r0(pl.y) - 24, '+30 ❤', '#7dff7d'); }
       else {
         const opts = WEAPONS.map((w, i) => i).filter(i => i > 0 && pl.unlocked[i]);
@@ -1233,7 +1249,7 @@ function buildSnap() {
     sc: score, cb: combo, ct: r2(comboTimer), bk: bossKills, k: kills,
     pl: players.map(p => [p.id, p.name, p.ci, r1(p.x), r1(p.y), r2(p.ang), Math.ceil(p.hp), p.max, p.inv > 0 ? 1 : 0, p.w, p.dead ? 1 : 0,
       p.level, r2(p.xp / xpNeed(p)), p.acid > 0 ? 1 : 0, p.ammo.map(a => a === Infinity ? -1 : a), p.unlocked.map(u => u ? 1 : 0),
-      p.buffs.map(b => [b.stat, b.val, b.waves, b.ic]), p.pendingCards, p.kills]),
+      p.buffs.map(b => [b.stat, b.val, b.waves, b.ic]), p.pendingCards, p.kills, p.crates || 0]),
     en: enemies.map(e => [e.id, TYPES.indexOf(e.type), r1(e.x), r1(e.y), r0(e.hp), r0(e.max), r2(e.ang), e.flash > 0 ? 1 : 0,
       e.mouthT > 0 ? 1 : 0, e.windup > 0 ? 1 : 0, e.charge > 0 ? 1 : 0, e.name || 0]),
     bu: bullets.map(b => [r0(b.x), r0(b.y), r0(b.vx), r0(b.vy), b.ci]),
@@ -1310,7 +1326,7 @@ function applySnap(s) {
   wave = s.w; waveTotal = s.wt || 1; toSpawn = s.ts; waveDelay = s.wd; score = s.sc; combo = s.cb; comboTimer = s.ct; bossKills = s.bk; kills = s.k;
   const oldP = new Map(players.map(p => [p.id, p]));
   players = s.pl.map(a => {
-    const [id, name, ci, x, y, ang, hp, max, inv, w, dead, level, xpf, acid, ammo, unl, buffs, pc, kl] = a;
+    const [id, name, ci, x, y, ang, hp, max, inv, w, dead, level, xpf, acid, ammo, unl, buffs, pc, kl, cr] = a;
     let p = oldP.get(id);
     if (!p) p = { id, x, y, tx: x, ty: y, r: 11, walk: 0, ang, w: 0, speed: 160, meta: {}, input: {} };
     const me = id === NET.myId;
@@ -1320,7 +1336,7 @@ function applySnap(s) {
       if (!p.init || (p.dead && !dead) || dist2(p.x, p.y, x, y) > 160 * 160) { p.x = x; p.y = y; }
       p.init = true;
     } else { p.tx = x; p.ty = y; p.ang = ang; p.w = w; }
-    Object.assign(p, { name, ci, hp, max, inv, dead: !!dead, level, xpFrac: xpf, acid, unlocked: unl.map(Boolean), buffs: buffs.map(b => ({ stat: b[0], val: b[1], waves: b[2], ic: b[3] })), pendingCards: pc, kills: kl });
+    Object.assign(p, { name, ci, hp, max, inv, dead: !!dead, level, xpFrac: xpf, acid, unlocked: unl.map(Boolean), buffs: buffs.map(b => ({ stat: b[0], val: b[1], waves: b[2], ic: b[3] })), pendingCards: pc, kills: kl, crates: cr || 0 });
     p.ammo = ammo.map(v => v < 0 ? Infinity : v);
     if (me) {
       if (!(p.ammo[p.w] > 0)) p.w = 0;
@@ -1769,23 +1785,35 @@ function drawHUD() {
     ctx.fillStyle = i === P.w ? '#ffcf4a' : P.unlocked[i] && P.ammo[i] > 0 ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.15)';
     ctx.fillRect(wb.x + wb.w / 2 - n * 7 + i * 14 + 2, wb.y + 48, 10, 4);
   }
-  ctx.font = '11px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.5)';
-  ctx.fillText('toca para cambiar', wb.x + wb.w / 2, wb.y - 6);
-  // joysticks
-  for (const k of ['move', 'aim']) {
-    const s = sticks[k];
-    if (!s) continue;
+  const ni = nextLockedWeapon(P);
+  if (ni > 0) { // progreso hacia la siguiente arma
+    const have = (P.crates || 0) - CRATE_STEPS[ni - 1], need = CRATE_STEPS[ni] - CRATE_STEPS[ni - 1];
+    const k = clamp(have / need, 0, 1), pw = wb.w, px = wb.x, py = wb.y - 20;
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; roundRect(px, py, pw, 15, 7); ctx.fill();
+    ctx.fillStyle = '#c98a2a'; if (k > 0) { roundRect(px + 2, py + 2, Math.max(10, (pw - 4) * k), 11, 5); ctx.fill(); }
+    ctx.font = '9px ' + FONT; ctx.fillStyle = '#fff';
+    ctx.fillText('📦 ' + Math.max(0, have) + '/' + need + ' → ' + WEAPONS[ni].name.toUpperCase(), wb.x + wb.w / 2, py + 11);
+  } else if (P.unlocked.filter(Boolean).length > 1 && wave <= 2) {
+    ctx.font = '11px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.fillText('toca para cambiar', wb.x + wb.w / 2, wb.y - 6);
+  }
+  // joysticks: solo se dibujan en la primera oleada, como guía; después son invisibles (pero funcionan)
+  const tutorial = wave <= 1 && 'ontouchstart' in window;
+  if (tutorial) for (const k of ['move', 'aim']) {
+    const s = sticks[k] || { ox: k === 'move' ? safe.l + 100 : W - safe.r - 100, oy: H - safe.b - 95, ghost: true };
+    if (s.ghost) s.x = s.ox, s.y = s.oy;
+    ctx.globalAlpha = s.ghost ? 0.5 + 0.2 * Math.sin(performance.now() / 300) : 1;
     ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(s.ox, s.oy, STICK_R, 0, 6.283); ctx.fill(); ctx.stroke();
     let dx = s.x - s.ox, dy = s.y - s.oy; const d = Math.hypot(dx, dy);
     if (d > STICK_R) { dx = dx / d * STICK_R; dy = dy / d * STICK_R; }
     ctx.fillStyle = k === 'aim' ? 'rgba(255,120,80,.7)' : 'rgba(255,255,255,.6)';
     ctx.beginPath(); ctx.arc(s.ox + dx, s.oy + dy, 24, 0, 6.283); ctx.fill();
-  }
-  if (wave <= 1 && kills < 3 && 'ontouchstart' in window) {
-    ctx.font = 'bold 14px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.45)';
-    ctx.fillText('◀ MOVER', safe.l + 90, H - safe.b - 90);
-    ctx.fillText('APUNTAR / DISPARAR ▶', W - safe.r - 120, H - safe.b - 90);
+    if (s.ghost) {
+      ctx.font = '11px ' + FONT; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.fillText(k === 'move' ? 'MOVERTE' : 'APUNTAR Y DISPARAR', s.ox, s.oy - STICK_R - 10);
+    }
+    ctx.globalAlpha = 1;
   }
   // letrero grande de oleada: aparece al centro y luego vuela a la esquina
   const lines = bannerT > 0 ? banner.split('\n') : [];
