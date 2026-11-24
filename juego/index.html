@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bloqueados">
 <meta name="theme-color" content="#14110f">
-<meta name="game-version" content="1.4.0">
+<meta name="game-version" content="1.5.0">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -500,7 +500,8 @@ const FX = {
   sfx(name, sh) { sfx[name](); if (sh) shake = Math.max(shake, sh); },
   splash(x, y) { sfx.splash(); for (let i = 0; i < 8; i++) addP(x, y, rand(-90, 90), rand(-90, 90), 0.3, '#b4dc32', 3); },
   float(x, y, txt, c, pid) { if (pid && !isMe(pid)) return; floats.push({ x, y, t: 1, txt, c }); },
-  banner(txt, d, snd) { banner = txt; bannerT = d; if (snd) sfx[snd](); },
+  banner(txt, d, snd) { banner = txt; bannerT = d; bannerMax = d; if (snd) sfx[snd](); },
+  newEnemy(ti) { warn = { ti, t: 3.85 }; }, // aviso de nuevo zombi (aparece tras el letrero de oleada)
   hurt(pid, x, y) { splat(x, y, 'rgba(110,14,14,.5)', 6, 12); if (isMe(pid)) { shake = Math.max(shake, 7); sfx.hurt(); hurtFlash = 0.35; } },
   level(pid, x, y, lv) {
     floats.push({ x, y: y - 34, t: 1.4, txt: '¡NIVEL ' + lv + '!', c: '#7dff7d' });
@@ -517,7 +518,7 @@ function fx(name, ...a) { FX[name](...a); if (isHost() && NET.conns.length) evQu
 let state = 'menu';
 let players = [], P = null, enemies = [], bullets = [], fireballs = [], puddles = [], particles = [], pickups = [], barrels = [], beams = [], floats = [], toasts = [];
 let wave = 0, waveTotal = 1, toSpawn = 0, spawnTimer = 0, waveDelay = 0, score = 0, combo = 1, comboTimer = 0, kills = 0, shake = 0, flowTimer = 0;
-let banner = '', bannerT = 0, bossCount = 0, bossKills = 0, runTime = 0, nextId = 1, hurtFlash = 0, cardsOpen = false;
+let banner = '', bannerT = 0, bannerMax = 1, warn = null, bossCount = 0, bossKills = 0, runTime = 0, nextId = 1, hurtFlash = 0, cardsOpen = false;
 function makePlayer(id, name, meta, ci) {
   const max = 100 + (+meta.hp || 0) * 10;
   const pl = { id, name: String(name || 'Jugador').slice(0, 12), ci, meta, x: WW / 2 + rand(-40, 40), y: WH / 2 + rand(-15, 15), r: 11,
@@ -532,7 +533,7 @@ function resetWorld() {
   paintFloor();
   enemies = []; bullets = []; fireballs = []; puddles = []; particles = []; pickups = []; barrels = []; beams = []; floats = []; toasts = [];
   wave = 0; waveTotal = 1; toSpawn = 0; spawnTimer = 0; waveDelay = 1.5; score = 0; combo = 1; comboTimer = 0; kills = 0; shake = 0; flowTimer = 0;
-  banner = ''; bannerT = 0; bossCount = 0; bossKills = 0; runTime = 0; nextId = 1; hurtFlash = 0; cardsOpen = false; evQueue = [];
+  banner = ''; bannerT = 0; warn = null; bossCount = 0; bossKills = 0; runTime = 0; nextId = 1; hurtFlash = 0; cardsOpen = false; evQueue = [];
   players = []; P = null;
 }
 function newGame() {
@@ -573,6 +574,8 @@ function startWave() {
     if (any) msg += '\n¡Nueva arma: ' + w.name + '!';
   });
   fx('banner', msg, msg.includes('\n') ? 3 : 2.2, 'wave');
+  const FIRST = { 2: 'spitter', 3: 'runner', 5: 'brute', 10: 'boss' };
+  if (FIRST[wave]) fx('newEnemy', TYPES.indexOf(FIRST[wave]));
 }
 const BOSS_NAMES = ['El Carnicero', 'La Bestia Gris', 'Rey Podrido', 'El Coloso', 'Señor del Abismo'];
 function spawnBoss() {
@@ -1122,6 +1125,7 @@ function cosmetic(dt) {
   toasts = toasts.filter(t => t.t > 0);
   shake *= Math.exp(-dt * 10);
   bannerT -= dt; hurtFlash -= dt;
+  if (warn && !(bannerT > 0 && warn.t > 3.6)) { const was = warn.t; warn.t -= dt; if (was > 3.6 && warn.t <= 3.6) { tone(880, 440, 0.25, 0.18, 'square'); setTimeout(() => tone(880, 440, 0.25, 0.18, 'square'), 300); } if (warn.t <= 0) warn = null; }
 }
 
 // ---------- Red: anfitrión ----------
@@ -1607,29 +1611,72 @@ function fancyText(txt, x, y, size, c1, c2, lw) {
   g.addColorStop(0, c1); g.addColorStop(1, c2);
   ctx.fillStyle = g; ctx.fillText(txt, x, y);
 }
-function drawWavePanel(leftBottom) {
-  // panel central: OLEADA + QUEDAN con barra de progreso
-  const narrow = W < 640;
-  const cx = W / 2, top = narrow ? Math.max(safe.t + 104, leftBottom + 4) : safe.t + 6;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+// Esquina superior derecha: número de oleada y, a su lado, zombis restantes
+function cornerWave() {
+  const narrow = W < 640, size = narrow ? 16 : 19;
+  return { rx: W - safe.r - 12, y: safe.t + 10 + 42 + 10 + size, size };
+}
+function drawWaveCorner(alpha) {
+  if (alpha <= 0) return;
+  const c = cornerWave();
+  ctx.globalAlpha = alpha; ctx.textAlign = 'right';
+  const label = 'OLEADA ' + Math.max(1, wave);
+  fancyText(label, c.rx, c.y, c.size, '#fff3b0', '#ffb31a', 5);
+  ctx.font = c.size + 'px ' + FONT;
+  const lw = ctx.measureText(label).width;
+  // píldora a la izquierda del número: restantes o cuenta atrás
   const remaining = enemies.length + toSpawn;
-  const between = wave === 0 || (remaining === 0 && waveDelay > 0);
-  fancyText(between && wave > 0 ? '¡OLEADA SUPERADA!' : 'OLEADA ' + Math.max(1, wave), cx, top + 30, between && wave > 0 ? 22 : 30, '#fff3b0', '#ffb31a');
-  const bw = 190, bx = cx - bw / 2, by = top + 40;
-  ctx.fillStyle = 'rgba(20,12,6,.75)'; roundRect(bx, by, bw, 22, 11); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,207,74,.55)'; ctx.lineWidth = 2; ctx.stroke();
-  if (between) {
-    ctx.font = '12px ' + FONT; ctx.fillStyle = '#ffcf4a';
-    ctx.fillText(wave === 0 ? 'PREPÁRATE…' : 'SIGUIENTE EN ' + Math.ceil(Math.max(0, waveDelay)), cx, by + 16);
-  } else {
-    const k = clamp(1 - remaining / Math.max(1, waveTotal), 0, 1);
-    const g = ctx.createLinearGradient(bx, 0, bx + bw, 0); g.addColorStop(0, '#5fbf2a'); g.addColorStop(1, '#b9e34a');
-    ctx.fillStyle = g; roundRect(bx + 3, by + 3, Math.max(16, (bw - 6) * k), 16, 8); ctx.fill();
-    ctx.font = '12px ' + FONT; ctx.lineWidth = 3; ctx.strokeStyle = '#1a0e05';
-    const t = '☠ QUEDAN ' + remaining;
-    ctx.strokeText(t, cx, by + 16); ctx.fillStyle = '#fff'; ctx.fillText(t, cx, by + 16);
+  let txt = null, col = '#fff';
+  if (wave > 0 && remaining > 0) txt = '☠ ' + remaining;
+  else if (wave > 0 && waveDelay > 0) { txt = '✓ ' + Math.ceil(waveDelay); col = '#b9e34a'; }
+  if (txt) {
+    ctx.font = '12px ' + FONT;
+    const pw = ctx.measureText(txt).width + 16, px = c.rx - lw - 8 - pw, py = c.y - c.size * 0.78;
+    ctx.fillStyle = 'rgba(20,12,6,.7)'; roundRect(px, py, pw, 20, 10); ctx.fill();
+    ctx.textAlign = 'center'; ctx.fillStyle = col; ctx.fillText(txt, px + pw / 2, py + 15);
   }
-  return by + 26;
+  ctx.globalAlpha = 1;
+}
+const WARN_INFO = {
+  runner: ['CORREDOR', 'Muy rápido pero frágil. ¡Que no te rodeen!'],
+  spitter: ['ESCUPIDOR', 'Lanza ácido desde lejos. Sus charcos queman: ¡muévete!'],
+  brute: ['BRUTO', 'Enorme y resistente. Pega durísimo de cerca.'],
+  boss: ['JEFE MUTANTE', 'Embiste y vomita anillos de baba. Llega cada 10 oleadas.'],
+};
+// Tarjeta de "¡PELIGRO! NUEVO ZOMBI" con su dibujo
+function drawWarn(top) {
+  if (!warn || warn.t > 3.6) return top; // espera a que se vaya el letrero de oleada
+  const type = TYPES[warn.ti], info = WARN_INFO[type];
+  if (!info) return top;
+  const a = clamp(warn.t / 0.4, 0, 1) * clamp((3.6 - warn.t) / 0.25, 0, 1);
+  const slide = (1 - clamp((3.6 - warn.t) / 0.25, 0, 1)) * -30;
+  const bw = Math.min(380, W - 24), bh = 92, bx = W / 2 - bw / 2, by = top + slide;
+  ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(30,8,6,.88)'; roundRect(bx, by, bw, bh, 14); ctx.fill();
+  const pulse = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 180));
+  ctx.strokeStyle = `rgba(255,70,50,${pulse})`; ctx.lineWidth = 3; ctx.stroke();
+  // dibujo del enemigo
+  const L = ENEMY_LOOK[type], k = 62 / (46 * (L.s || 1));
+  ctx.save(); ctx.translate(bx + 46, by + bh - 14); ctx.scale(k, k);
+  drawPerson({ x: 0, y: 0, r: RADIUS[type], ang: Math.PI / 2, walk: performance.now() / 120, mouthT: Math.sin(performance.now() / 300) > 0 ? 1 : 0 }, { ...L });
+  ctx.restore();
+  ctx.textAlign = 'left';
+  const tx = bx + 92;
+  fancyText('⚠ ¡PELIGRO! NUEVO ZOMBI', tx, by + 24, 12, '#ffd0c0', '#ff5a3a', 4);
+  fancyText(info[0], tx, by + 52, 22, '#e8ff9a', '#8fd02a', 5);
+  ctx.font = 'bold 12px -apple-system,sans-serif'; ctx.fillStyle = '#f3e9d8';
+  wrapText(info[1], tx, by + 72, bw - 102, 14);
+  ctx.globalAlpha = 1;
+  return by + bh + 6;
+}
+function wrapText(t, x, y, maxW, lh) {
+  let line = '';
+  for (const w of t.split(' ')) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); line = w; y += lh; }
+    else line = test;
+  }
+  if (line) ctx.fillText(line, x, y);
 }
 function drawHUD() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -1675,7 +1722,7 @@ function drawHUD() {
     }
   }
   // oleada y restantes
-  let panelBottom = drawWavePanel(ly);
+  let panelBottom = W < 640 ? Math.max(safe.t + 104, ly + 4) : safe.t + 8;
   // mejoras activas
   const b = hudButtons();
   ctx.textAlign = 'center';
@@ -1688,13 +1735,14 @@ function drawHUD() {
   // jefe
   const boss = enemies.find(e => e.type === 'boss');
   if (boss) {
-    const bw = Math.min(300, W - 40), bx = W / 2 - bw / 2, by = panelBottom + 4;
+    const bw = Math.min(300, W - 40), bx = W / 2 - bw / 2, by = panelBottom;
     ctx.textAlign = 'center';
     fancyText('☠ ' + (boss.name || 'JEFE'), W / 2, by + 14, 14, '#ffc8f0', '#d35af0', 4);
     ctx.fillStyle = 'rgba(0,0,0,.6)'; roundRect(bx, by + 20, bw, 12, 5); ctx.fill();
     ctx.fillStyle = '#c03ad8'; roundRect(bx + 2, by + 22, Math.max(8, (bw - 4) * clamp(boss.hp / boss.max, 0, 1)), 8, 4); ctx.fill();
     panelBottom = by + 36;
   }
+  panelBottom = drawWarn(panelBottom);
   // avisos (alguien entró, salió…)
   ctx.textAlign = 'center';
   toasts.forEach((t, i) => {
@@ -1739,18 +1787,30 @@ function drawHUD() {
     ctx.fillText('◀ MOVER', safe.l + 90, H - safe.b - 90);
     ctx.fillText('APUNTAR / DISPARAR ▶', W - safe.r - 120, H - safe.b - 90);
   }
-  // banner grande
+  // letrero grande de oleada: aparece al centro y luego vuela a la esquina
+  const lines = bannerT > 0 ? banner.split('\n') : [];
+  const isWave = /^OLEADA \d+$/.test(lines[0] || '');
   if (bannerT > 0) {
-    ctx.globalAlpha = clamp(bannerT * 2, 0, 1);
-    const lines = banner.split('\n');
-    const pop = 1 + Math.max(0, bannerT - (bannerT > 2.5 ? 2.8 : 1.9)) * 0.6;
+    const FLY = 0.6, big = Math.round(Math.min(52, W / 11));
+    const pop = 1 + Math.max(0, bannerT - (bannerMax - 0.25)) * 1.6;
     lines.forEach((ln, i) => {
       ctx.textAlign = 'center';
-      if (i === 0) fancyText(ln, W / 2, H * 0.36, Math.round(Math.min(48, W / 12) * pop), '#fff7c2', '#ffa01a');
-      else fancyText(ln, W / 2, H * 0.36 + 18 + i * 28, 18, '#ffffff', '#d8f0a0', 5);
+      if (i === 0 && isWave) {
+        const c = cornerWave();
+        let k = bannerT < FLY ? 1 - bannerT / FLY : 0; k = k * k * (3 - 2 * k);
+        const size = Math.round(big * pop + (c.size - big * pop) * k);
+        ctx.font = c.size + 'px ' + FONT; const cw = ctx.measureText(ln).width;
+        const x = W / 2 + (c.rx - cw / 2 - W / 2) * k, y = H * 0.36 + (c.y - H * 0.36) * k;
+        fancyText(ln, x, y, size, '#fff7c2', '#ffa01a');
+      } else {
+        ctx.globalAlpha = clamp((bannerT - (isWave ? 0.6 : 0)) * 2.5, 0, 1);
+        if (i === 0) fancyText(ln, W / 2, H * 0.36, Math.round(Math.min(44, W / 12) * pop), '#fff7c2', '#ffa01a');
+        else fancyText(ln, W / 2, H * 0.36 + 18 + i * 28, 18, '#ffffff', '#d8f0a0', 5);
+        ctx.globalAlpha = 1;
+      }
     });
-    ctx.globalAlpha = 1;
   }
+  drawWaveCorner(bannerT > 0 && isWave ? 0 : 1);
   if (P.dead) {
     ctx.textAlign = 'center';
     fancyText('CAÍSTE', W / 2, H * 0.55, 34, '#ffb0a0', '#e2453a');
