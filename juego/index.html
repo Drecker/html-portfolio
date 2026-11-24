@@ -31,6 +31,17 @@
   button:active{transform:translateY(3px);box-shadow:0 2px 0 #a8641a}
   button.sec{background:#5b4a3a;color:#f3e9d8;box-shadow:0 5px 0 #2e241b}
   .small{font-size:12px;opacity:.6}
+  #cardrow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:6px;max-width:94vw}
+  .card{width:min(29vw,210px);min-height:min(44vh,230px);margin:0;padding:14px 10px;border-radius:16px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;background:#2d241c;color:#f3e9d8;box-shadow:0 6px 0 #120e0a;border:3px solid #ffcf4a;font-weight:600}
+  .card .txt{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .card .ic{font-size:clamp(30px,8vmin,46px)}
+  .card .nm{font-size:clamp(15px,3.6vmin,20px);font-weight:900;color:#ffcf4a}
+  .card .ds{font-size:clamp(12px,2.9vmin,15px);font-weight:500;line-height:1.25}
+  .card .du{font-size:11px;padding:3px 8px;border-radius:8px;background:#5b4a3a;margin-top:4px}
+  .card.perm{border-color:#7ad3ff}.card.perm .nm{color:#7ad3ff}
+  .card:disabled{opacity:.55}
+  @media (orientation:portrait){.card{width:80vw;min-height:0;flex-direction:row;text-align:left;justify-content:flex-start;gap:12px}.card .txt{align-items:flex-start;gap:3px}}
 </style>
 </head>
 <body>
@@ -39,7 +50,7 @@
 
 <div id="menu" class="screen on">
   <h1>CUBOS vs ZOMBIS</h1>
-  <p>Sobrevive oleada tras oleada. Encadena muertes para multiplicar tus puntos y desbloquear armas nuevas.</p>
+  <p>Sobrevive oleada tras oleada. Cada 10 oleadas llega un <b>jefe</b>: derrótalo para ganar un arma nueva. Gana experiencia, sube de nivel para curarte y cada 5 niveles elige una <b>tarjeta de mejora</b>.</p>
   <p>📱 <b>Pulgar izquierdo:</b> moverse · <b>Pulgar derecho:</b> apuntar y disparar · Toca el <b>arma</b> para cambiarla.</p>
   <p class="small">En computadora: WASD para moverte, mouse para apuntar y disparar, Q/E o 1‑5 para cambiar de arma, P para pausar.</p>
   <button id="play">JUGAR</button>
@@ -51,6 +62,12 @@
   <h2>PAUSA</h2>
   <button id="resume">CONTINUAR</button>
   <button id="quit" class="sec">SALIR</button>
+</div>
+
+<div id="cards" class="screen">
+  <h2 id="cardtitle">¡NIVEL 5!</h2>
+  <p>Elige una mejora</p>
+  <div id="cardrow"></div>
 </div>
 
 <div id="over" class="screen">
@@ -215,6 +232,15 @@ function lineOfSight(ax, ay, bx, by) {
   }
   return true;
 }
+// si el centro quedó dentro de un bloque, sacarlo por el lado libre más cercano
+function pushOut(e, gx, gy, isPlayer) {
+  const free = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && !solidFor(grid[y * GW + x], isPlayer);
+  const opts = [
+    [e.x - gx * T, gx - 1, gy, -1, 0], [gx * T + T - e.x, gx + 1, gy, 1, 0],
+    [e.y - gy * T, gx, gy - 1, 0, -1], [gy * T + T - e.y, gx, gy + 1, 0, 1]];
+  opts.sort((a, b) => a[0] - b[0]);
+  for (const [dd, nx, ny, sx, sy] of opts) if (free(nx, ny)) { e.x += sx * (dd + e.r); e.y += sy * (dd + e.r); return; }
+}
 function collideWalls(e, isPlayer) {
   const r = e.r;
   const x0 = Math.floor((e.x - r) / T), x1 = Math.floor((e.x + r) / T);
@@ -225,25 +251,27 @@ function collideWalls(e, isPlayer) {
     const cx = clamp(e.x, gx * T, gx * T + T), cy = clamp(e.y, gy * T, gy * T + T);
     let dx = e.x - cx, dy = e.y - cy, d = Math.hypot(dx, dy);
     if (d < r) {
-      if (d === 0) { dx = 0; dy = -1; d = 1; }
+      if (d === 0) { pushOut(e, gx, gy, isPlayer); continue; }
       e.x += dx / d * (r - d); e.y += dy / d * (r - d);
     }
   }
   if (isPlayer) { e.x = clamp(e.x, T + r, WW - T - r); e.y = clamp(e.y, T + r, WH - T - r); }
+  else { e.x = clamp(e.x, r, WW - r); e.y = clamp(e.y, r, WH - r); }
 }
 
 // ---------- Armas ----------
 const WEAPONS = [
   { id: 'pistol', name: 'Pistola', rate: 0.26, dmg: 24, spd: 950, spread: 0.03, pellets: 1, life: 0.6, unlock: 1, ammo: Infinity, color: '#ffe9a0', snd: 'pistol' },
-  { id: 'uzi', name: 'Metralleta', rate: 0.075, dmg: 15, spd: 1000, spread: 0.12, pellets: 1, life: 0.55, unlock: 2, give: 160, color: '#ffd36a', snd: 'uzi' },
-  { id: 'shotgun', name: 'Escopeta', rate: 0.75, dmg: 17, spd: 850, spread: 0.5, pellets: 8, life: 0.28, unlock: 3, give: 30, color: '#ffb35a', snd: 'shotgun' },
-  { id: 'barrel', name: 'Barriles', rate: 0.45, unlock: 4, give: 5, snd: 'place' },
-  { id: 'rail', name: 'Rayo', rate: 0.95, dmg: 110, unlock: 5, give: 16, snd: 'rail' },
+  { id: 'uzi', name: 'Metralleta', rate: 0.075, dmg: 15, spd: 1000, spread: 0.12, pellets: 1, life: 0.55, boss: 1, give: 160, color: '#ffd36a', snd: 'uzi' },
+  { id: 'shotgun', name: 'Escopeta', rate: 0.75, dmg: 17, spd: 850, spread: 0.5, pellets: 8, life: 0.28, boss: 2, give: 30, color: '#ffb35a', snd: 'shotgun' },
+  { id: 'barrel', name: 'Barriles', rate: 0.45, boss: 3, give: 5, snd: 'place' },
+  { id: 'rail', name: 'Rayo', rate: 0.95, dmg: 110, boss: 4, give: 16, snd: 'rail' },
 ];
 
 // ---------- Estado ----------
 let state = 'menu';
 let P, enemies, bullets, fireballs, particles, pickups, barrels, beams, floats;
+let level, xp, buffs, pendingCards, bossCount;
 let wave, toSpawn, spawnTimer, waveDelay, score, combo, comboTimer, kills, shake, flowTimer, banner, bannerT;
 let best = +(localStorage.getItem('cvz_best') || 0);
 function newGame() {
@@ -253,6 +281,7 @@ function newGame() {
   enemies = []; bullets = []; fireballs = []; particles = []; pickups = []; barrels = []; beams = []; floats = [];
   wave = 0; toSpawn = 0; spawnTimer = 0; waveDelay = 1.5; score = 0; combo = 1; comboTimer = 0; kills = 0; shake = 0; flowTimer = 0;
   banner = ''; bannerT = 0;
+  level = 1; xp = 0; buffs = []; pendingCards = 0; bossCount = 0;
   computeFlow(P.x, P.y);
 }
 function showBanner(t, d = 2.2) { banner = t; bannerT = d; }
@@ -261,11 +290,30 @@ function startWave() {
   toSpawn = 8 + wave * 5;
   spawnTimer = 0;
   sfx.wave();
-  let msg = 'OLEADA ' + wave;
-  WEAPONS.forEach((w, i) => {
-    if (w.unlock === wave && !P.unlocked[i]) { P.unlocked[i] = true; P.ammo[i] += w.give; msg += '\n¡Nueva arma: ' + w.name + '!'; }
-  });
-  showBanner(msg, 2.6);
+  // las mejoras temporales duran algunas oleadas
+  for (const b of buffs) b.waves--;
+  buffs = buffs.filter(b => b.waves > 0);
+  if (wave % 10 === 0) {
+    toSpawn = 6 + wave;
+    const name = spawnBoss();
+    showBanner('OLEADA ' + wave + '\n☠ JEFE: ' + name + ' ☠', 3);
+  } else showBanner('OLEADA ' + wave, 2.2);
+}
+const BOSS_NAMES = ['El Carnicero', 'La Bestia Gris', 'Rey Podrido', 'El Coloso', 'Señor del Abismo'];
+function spawnBoss() {
+  bossCount++;
+  let bi = spawnTiles[0], bd = -1;
+  for (const i of spawnTiles) {
+    const d = dist2((i % GW + 0.5) * T, (((i / GW) | 0) + 0.5) * T, P.x, P.y);
+    if (d > bd) { bd = d; bi = i; }
+  }
+  const x = (bi % GW + 0.5) * T, y = (((bi / GW) | 0) + 0.5) * T;
+  const hp = 2600 * (1 + (bossCount - 1) * 0.9);
+  const name = BOSS_NAMES[(bossCount - 1) % BOSS_NAMES.length] + (bossCount > BOSS_NAMES.length ? ' ' + Math.ceil(bossCount / BOSS_NAMES.length) : '');
+  enemies.push({ type: 'boss', name, x, y, r: 26, hp, max: hp, speed: 50 + bossCount * 3, dmg: 30, pts: 1000 * bossCount, xp: 60 + bossCount * 25,
+    atk: 0, flash: 0, ang: 0, shoot: 3, walk: 0, windup: 0, charge: 0, cvx: 0, cvy: 0 });
+  shake = 12; sfx.boom();
+  return name;
 }
 function spawnEnemy() {
   const i = spawnTiles[(Math.random() * spawnTiles.length) | 0];
@@ -283,7 +331,8 @@ function spawnEnemy() {
     brute: { r: 16, hp: 260, speed: 42, dmg: 24, pts: 40 },
     devil: { r: 11, hp: 95, speed: 66, dmg: 12, pts: 30 },
   }[type];
-  enemies.push({ type, x, y, r: base.r, hp: base.hp * hpMul, max: base.hp * hpMul, speed: base.speed * (1 + wave * 0.015),
+  const xpv = { zombie: 3, runner: 4, devil: 7, brute: 12 }[type];
+  enemies.push({ type, xp: xpv, x, y, r: base.r, hp: base.hp * hpMul, max: base.hp * hpMul, speed: base.speed * (1 + wave * 0.015),
     dmg: base.dmg, pts: base.pts, atk: 0, flash: 0, ang: 0, shoot: rand(1.5, 3), walk: rand(0, 6) });
   return true;
 }
@@ -376,11 +425,75 @@ function updateCam(dt) {
   cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
 }
 
+// ---------- Experiencia y tarjetas ----------
+const bonus = stat => { let v = 0; for (const b of buffs) if (b.stat === stat) v += b.val; return v; };
+const xpNeed = () => 10 + level * 8;
+const CARDS = [
+  { stat: 'speed', val: 0.25, waves: 5, ic: '👟', nm: 'Pies Ligeros', ds: '+25% velocidad de movimiento' },
+  { stat: 'rate', val: 0.3, waves: 5, ic: '🔥', nm: 'Gatillo Rápido', ds: '+30% velocidad de disparo' },
+  { stat: 'dmg', val: 0.3, waves: 5, ic: '💥', nm: 'Fuerza Bruta', ds: '+30% de daño' },
+  { stat: 'armor', val: 0.25, waves: 5, ic: '🛡️', nm: 'Blindaje', ds: '−25% de daño recibido' },
+  { stat: 'regen', val: 2, waves: 5, ic: '💚', nm: 'Regeneración', ds: 'Recuperas 2 de vida por segundo' },
+  { stat: 'magnet', val: 1.5, waves: 5, ic: '🧲', nm: 'Imán', ds: 'Recoges cajas desde mucho más lejos' },
+  { stat: 'pierce', val: 1, waves: 5, ic: '🎯', nm: 'Balas Perforantes', ds: 'Tus balas atraviesan 1 enemigo más' },
+  { stat: 'xp', val: 0.5, waves: 5, ic: '⭐', nm: 'Sabiduría', ds: '+50% de experiencia' },
+  { stat: 'combo', val: 1.5, waves: 5, ic: '⏱️', nm: 'Racha Larga', ds: 'Tus combos duran mucho más' },
+  { perm: 'maxhp', ic: '❤️', nm: 'Corazón de Hierro', ds: '+25 de vida máxima' },
+  { perm: 'ammo', ic: '📦', nm: 'Arsenal', ds: 'Munición extra para todas tus armas', need: () => P.unlocked.some((u, i) => u && i > 0) },
+];
+function gainXp(v) {
+  xp += v * (1 + bonus('xp'));
+  while (xp >= xpNeed()) {
+    xp -= xpNeed(); level++;
+    P.hp = P.max;
+    floats.push({ x: P.x, y: P.y - 34, t: 1.4, txt: '¡NIVEL ' + level + '! Vida llena', c: '#7dff7d' });
+    tone(400, 800, 0.15, 0.2); setTimeout(() => tone(600, 1200, 0.2, 0.2), 120);
+    if (level % 5 === 0) pendingCards++;
+  }
+}
+function openCards() {
+  pendingCards--;
+  state = 'cards'; sticks.move = sticks.aim = null; mouse.down = false;
+  $('cardtitle').textContent = '¡NIVEL ' + (level - (level % 5) - pendingCards * 5) + '!';
+  const pool = CARDS.filter(c => !c.need || c.need());
+  const pick = [];
+  while (pick.length < 3 && pool.length) pick.push(pool.splice((Math.random() * pool.length) | 0, 1)[0]);
+  const row = $('cardrow'); row.innerHTML = '';
+  for (const c of pick) {
+    const b = document.createElement('button');
+    b.className = 'card' + (c.perm ? ' perm' : '');
+    b.innerHTML = `<span class="ic">${c.ic}</span><span class="txt"><span class="nm">${c.nm}</span><span class="ds">${c.ds}</span>` +
+      `<span class="du">${c.perm ? 'Permanente' : 'Dura ' + c.waves + ' oleadas'}</span></span>`;
+    b.disabled = true; setTimeout(() => b.disabled = false, 600); // evita toques accidentales
+    b.onclick = () => chooseCard(c);
+    row.appendChild(b);
+  }
+  sfx.wave(); show('cards');
+}
+function chooseCard(c) {
+  sfx.pick();
+  if (c.perm === 'maxhp') { P.max += 25; P.hp = P.max; }
+  else if (c.perm === 'ammo') WEAPONS.forEach((w, i) => { if (i > 0 && P.unlocked[i]) P.ammo[i] += w.give; });
+  else buffs.push({ stat: c.stat, val: c.val, waves: c.waves + (toSpawn > 0 || enemies.length ? 1 : 0), ic: c.ic });
+  if (pendingCards > 0) openCards();
+  else { state = 'play'; show(null); last = performance.now(); }
+}
+function bossDefeated(e) {
+  const idx = WEAPONS.findIndex((w, i) => i > 0 && !P.unlocked[i]);
+  let msg = '¡JEFE DERROTADO!';
+  if (idx > 0) { P.unlocked[idx] = true; P.ammo[idx] += WEAPONS[idx].give; P.w = idx; msg += '\nNueva arma: ' + WEAPONS[idx].name; }
+  else { WEAPONS.forEach((w, i) => { if (i > 0) P.ammo[i] += w.give; }); msg += '\nMunición para todo'; }
+  P.hp = P.max;
+  showBanner(msg, 3.5); sfx.wave(); shake = 16;
+  for (let i = 0; i < 4; i++) pickups.push({ x: e.x + rand(-30, 30), y: e.y + rand(-30, 30), kind: i % 2 ? 'hp' : 'ammo', t: 20 });
+  splat(e.x, e.y, 'rgba(70,30,100,.8)', 60, 50);
+}
+
 // ---------- Combate ----------
 function fire() {
   const w = WEAPONS[P.w];
   if (P.cd > 0 || P.ammo[P.w] <= 0) return;
-  P.cd = w.rate;
+  P.cd = w.rate / (1 + bonus('rate'));
   if (P.ammo[P.w] !== Infinity) P.ammo[P.w]--;
   sfx[w.snd]();
   const mx = P.x + Math.cos(P.ang) * 16, my = P.y + Math.sin(P.ang) * 16;
@@ -406,7 +519,7 @@ function fire() {
     for (let i = 0; i < w.pellets; i++) {
       const a = P.ang + rand(-w.spread, w.spread) * (w.pellets > 1 ? 0.5 : 1);
       const sp = w.spd * rand(0.9, 1.1);
-      bullets.push({ x: mx, y: my, px: P.x, py: P.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: w.life, dmg: w.dmg, color: w.color });
+      bullets.push({ x: mx, y: my, px: P.x, py: P.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: w.life, dmg: w.dmg, color: w.color, pierce: bonus('pierce'), hit: [] });
     }
     for (let i = 0; i < 3; i++) particles.push({ x: mx, y: my, vx: Math.cos(P.ang) * rand(60, 160) + rand(-40, 40), vy: Math.sin(P.ang) * rand(60, 160) + rand(-40, 40), life: 0.1, max: 0.1, c: '#ffe38a', s: 3 });
     if (w.id === 'shotgun') shake = Math.max(shake, 5);
@@ -415,8 +528,8 @@ function fire() {
 }
 function damageEnemy(e, dmg, dx, dy) {
   if (e.hp <= 0) return;
-  e.hp -= dmg; e.flash = 0.08;
-  e.x += dx * 4; e.y += dy * 4;
+  e.hp -= dmg * (1 + bonus('dmg')); e.flash = 0.08;
+  if (e.type !== 'boss') { e.x += dx * 4; e.y += dy * 4; }
   const blood = e.type === 'devil' ? '#3a1d55' : '#6a1010';
   for (let i = 0; i < 4; i++) particles.push({ x: e.x, y: e.y, vx: dx * rand(40, 140) + rand(-60, 60), vy: dy * rand(40, 140) + rand(-60, 60), life: 0.35, max: 0.35, c: blood, s: 3 });
   sfx.hit();
@@ -424,7 +537,9 @@ function damageEnemy(e, dmg, dx, dy) {
 }
 function killEnemy(e) {
   kills++;
-  combo = Math.min(combo + 1, 30); comboTimer = 2.2;
+  combo = Math.min(combo + 1, 30); comboTimer = 2.2 * (1 + bonus('combo'));
+  gainXp(e.xp || 3);
+  if (e.type === 'boss') bossDefeated(e);
   const pts = e.pts * Math.max(1, Math.floor(combo / 2));
   score += pts;
   floats.push({ x: e.x, y: e.y - 20, t: 0.9, txt: '+' + pts });
@@ -454,7 +569,7 @@ function explode(x, y) {
 }
 function hurtPlayer(d) {
   if (P.inv > 0 || d <= 0) return;
-  P.hp -= d; P.inv = 0.35; shake = Math.max(shake, 7); sfx.hurt();
+  P.hp -= d * Math.max(0.3, 1 - bonus('armor')); P.inv = 0.35; shake = Math.max(shake, 7); sfx.hurt();
   splat(P.x, P.y, 'rgba(110,14,14,.5)', 6, 12);
   if (P.hp <= 0) gameOver();
 }
@@ -474,7 +589,9 @@ function update(dt) {
   if (keys.KeyD || keys.ArrowRight) mx += 1;
   const ml = Math.hypot(mx, my);
   if (ml > 1) { mx /= ml; my /= ml; }
-  P.x += mx * P.speed * dt; P.y += my * P.speed * dt;
+  const spdMul = 1 + bonus('speed');
+  P.x += mx * P.speed * spdMul * dt; P.y += my * P.speed * spdMul * dt;
+  if (bonus('regen')) P.hp = Math.min(P.max, P.hp + bonus('regen') * dt);
   collideWalls(P, true);
   if (ml > 0.1) P.walk += dt * 12;
 
@@ -505,6 +622,7 @@ function update(dt) {
     }
   }
   comboTimer -= dt; if (comboTimer <= 0) combo = 1;
+  if (pendingCards > 0 && state === 'play') { openCards(); return; }
 
   flowTimer -= dt;
   if (flowTimer <= 0) { computeFlow(P.x, P.y); flowTimer = 0.2; }
@@ -516,6 +634,31 @@ function update(dt) {
     const d = Math.hypot(dx, dy) || 1;
     let dir = flowDir(e);
     if (!dir) dir = [dx / d, dy / d];
+    if (e.type === 'boss') {
+      e.shoot -= dt;
+      if (e.windup > 0) { // se prepara para embestir
+        e.windup -= dt; e.flash = Math.sin(e.windup * 40) > 0 ? 0.02 : 0;
+        if (e.windup <= 0) { const a = Math.atan2(dy, dx); e.cvx = Math.cos(a) * 360; e.cvy = Math.sin(a) * 360; e.charge = 0.8; sfx.hurt(); }
+        continue;
+      }
+      if (e.charge > 0) {
+        e.charge -= dt; const ox = e.x, oy = e.y;
+        e.x += e.cvx * dt; e.y += e.cvy * dt; collideWalls(e, false);
+        if (Math.hypot(e.x - ox, e.y - oy) < 360 * dt * 0.4) { e.charge = 0; shake = Math.max(shake, 8); }
+        if (Math.random() < 0.5) particles.push({ x: e.x, y: e.y + 10, vx: rand(-40, 40), vy: rand(-40, 40), life: 0.4, max: 0.4, c: '#8a7a6a', s: 5 });
+        if (d < e.r + P.r + 4 && e.atk <= 0) { hurtPlayer(e.dmg); e.atk = 0.8; }
+        continue;
+      }
+      if (e.shoot <= 0) {
+        e.shoot = rand(2.4, 3.8) - Math.min(bossCount * 0.2, 1);
+        if (Math.random() < 0.5 && d < 450 && lineOfSight(e.x, e.y, P.x, P.y)) e.windup = 0.7;
+        else {
+          const n = 10 + bossCount * 2, a0 = rand(0, 6.28);
+          for (let k = 0; k < n; k++) { const a = a0 + k / n * 6.283; fireballs.push({ x: e.x, y: e.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, life: 3.5 }); }
+          sfx.fire(); shake = Math.max(shake, 6);
+        }
+      }
+    }
     let vx = dir[0], vy = dir[1];
     // separación
     for (const o of enemies) {
@@ -567,7 +710,9 @@ function update(dt) {
       const t = clamp(((e.x - b.px) * sx + (e.y - b.py) * sy) / sl, 0, 1);
       if (dist2(b.px + sx * t, b.py + sy * t, e.x, e.y) < (e.r + 2) ** 2) {
         const l = Math.sqrt(sl);
-        damageEnemy(e, b.dmg, sx / l, sy / l); b.life = 0; break;
+        if (b.hit.includes(e)) continue;
+        damageEnemy(e, b.dmg, sx / l, sy / l);
+        if (b.pierce > 0) { b.pierce--; b.hit.push(e); } else { b.life = 0; break; }
       }
     }
     if (b.life > 0) for (const br of barrels) {
@@ -595,7 +740,9 @@ function update(dt) {
   // recogibles
   for (const p of pickups) {
     p.t -= dt;
-    if (dist2(p.x, p.y, P.x, P.y) < 22 * 22) {
+    const pr = 22 * (1 + bonus('magnet'));
+    if (bonus('magnet') && dist2(p.x, p.y, P.x, P.y) < (pr * 2.5) ** 2) { const a = Math.atan2(P.y - p.y, P.x - p.x); p.x += Math.cos(a) * 260 * dt; p.y += Math.sin(a) * 260 * dt; }
+    if (dist2(p.x, p.y, P.x, P.y) < pr * pr) {
       p.t = 0; sfx.pick();
       if (p.kind === 'hp') { P.hp = Math.min(P.max, P.hp + 30); floats.push({ x: P.x, y: P.y - 24, t: 1, txt: '+30 ❤', c: '#7dff7d' }); }
       else {
@@ -680,6 +827,7 @@ const ENEMY_LOOK = {
   runner: { body: '#7a5a2e', head: '#b6c47a', legs: '#4a3020', eyes: '#ff3', mouth: '#3a1a1a' },
   brute: { body: '#3f4f2a', head: '#748c55', legs: '#2c2c3c', eyes: '#f22', mouth: '#2a0a0a', s: 1.45 },
   devil: { body: '#7a1418', head: '#c43030', legs: '#3a0a0a', eyes: '#ffdb3a', horns: true },
+  boss: { body: '#4a2a5e', head: '#9a7ab0', legs: '#221830', eyes: '#ff3b3b', mouth: '#1a0a1a', horns: true, s: 2.3 },
 };
 
 function draw() {
@@ -723,7 +871,7 @@ function draw() {
     } else if (it.k === 'e') {
       const e = it.o, L = ENEMY_LOOK[e.type];
       drawPerson(e, { ...L, flash: e.flash > 0 });
-      if (e.hp < e.max) {
+      if (e.hp < e.max && e.type !== 'boss') {
         const s = L.s || 1, bw = 22 * s, by = e.y - 42 * s;
         ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(e.x - bw / 2, by, bw, 3);
         ctx.fillStyle = e.type === 'devil' ? '#ff6a3a' : '#9be05a'; ctx.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.max), 3);
@@ -792,18 +940,43 @@ function drawHUD() {
   roundRect(L + 2, Tp + 2, 166 * hpk, 14, 5); ctx.fill();
   ctx.font = 'bold 12px -apple-system,sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#fff';
   ctx.fillText(Math.ceil(Math.max(0, P.hp)) + ' / ' + P.max, L + 8, Tp + 13);
+  // experiencia
+  ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(L, Tp + 21, 170, 6);
+  ctx.fillStyle = '#5ab8ff'; ctx.fillRect(L + 1, Tp + 22, 168 * clamp(xp / xpNeed(), 0, 1), 4);
+  ctx.font = 'bold 12px -apple-system,sans-serif'; ctx.fillStyle = '#9fd6ff';
+  ctx.fillText('Nv ' + level, L + 176, Tp + 27);
+  ctx.fillStyle = '#fff';
   ctx.font = 'bold 16px -apple-system,sans-serif';
-  ctx.fillText('Puntos ' + score, L, Tp + 38);
+  ctx.fillText('Puntos ' + score, L, Tp + 46);
   ctx.font = '13px -apple-system,sans-serif';
   ctx.fillStyle = '#d8ccb8';
-  ctx.fillText('Oleada ' + wave + '  ·  Quedan ' + (enemies.length + toSpawn), L, Tp + 56);
+  ctx.fillText('Oleada ' + wave + '  ·  Quedan ' + (enemies.length + toSpawn), L, Tp + 64);
   if (combo > 1) {
     ctx.font = 'bold 20px -apple-system,sans-serif'; ctx.fillStyle = '#ffcf4a';
-    ctx.fillText('x' + Math.max(1, Math.floor(combo / 2)) + '  combo ' + combo, L, Tp + 80);
-    ctx.fillStyle = 'rgba(255,207,74,.5)'; ctx.fillRect(L, Tp + 86, 100 * clamp(comboTimer / 2.2, 0, 1), 3);
+    ctx.fillText('x' + Math.max(1, Math.floor(combo / 2)) + '  combo ' + combo, L, Tp + 88);
+    ctx.fillStyle = 'rgba(255,207,74,.5)'; ctx.fillRect(L, Tp + 94, 100 * clamp(comboTimer / (2.2 * (1 + bonus('combo'))), 0, 1), 3);
+  }
+  // mejoras activas
+  const b = hudButtons();
+  ctx.textAlign = 'center';
+  buffs.forEach((bf, i) => {
+    const x = b.pause.x - 40 - i * 38, y = b.pause.y + 2;
+    ctx.fillStyle = 'rgba(0,0,0,.45)'; roundRect(x, y, 34, 38, 8); ctx.fill();
+    ctx.font = '17px sans-serif'; ctx.fillText(bf.ic, x + 17, y + 21);
+    ctx.font = 'bold 10px -apple-system,sans-serif'; ctx.fillStyle = '#ffcf4a'; ctx.fillText(bf.waves + ' ol', x + 17, y + 34);
+  });
+  ctx.textAlign = 'left';
+  // jefe
+  const boss = enemies.find(e => e.type === 'boss');
+  if (boss) {
+    const bw = Math.max(120, Math.min(W - 2 * (safe.l + 240), 340)), bx = W / 2 - bw / 2, by = W - 2 * (safe.l + 240) < 120 ? safe.t + 110 : safe.t + 14;
+    ctx.textAlign = 'center'; ctx.font = 'bold 14px -apple-system,sans-serif'; ctx.fillStyle = '#ff8a8a';
+    ctx.fillText('☠ ' + boss.name, W / 2, by + 2);
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; roundRect(bx, by + 8, bw, 12, 5); ctx.fill();
+    ctx.fillStyle = '#c03ad8'; roundRect(bx + 2, by + 10, (bw - 4) * Math.max(0, boss.hp / boss.max), 8, 4); ctx.fill();
+    ctx.textAlign = 'left';
   }
   // pausa
-  const b = hudButtons();
   ctx.fillStyle = 'rgba(0,0,0,.45)'; roundRect(b.pause.x, b.pause.y, b.pause.w, b.pause.h, 10); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.fillRect(b.pause.x + 14, b.pause.y + 12, 5, 18); ctx.fillRect(b.pause.x + 23, b.pause.y + 12, 5, 18);
   // arma
@@ -821,7 +994,8 @@ function drawHUD() {
     ctx.fillRect(wb.x + wb.w / 2 - n * 7 + i * 14 + 2, wb.y + 48, 10, 4);
   }
   ctx.font = '11px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.5)';
-  ctx.fillText('toca para cambiar', wb.x + wb.w / 2, wb.y - 6);
+  const nextLocked = WEAPONS.find((ww, i) => i > 0 && !P.unlocked[i]);
+  ctx.fillText(nextLocked ? 'Próxima arma: vence al jefe (oleada ' + (bossCount + 1) * 10 + ')' : 'toca para cambiar', wb.x + wb.w / 2, wb.y - 6);
   // joysticks
   for (const k of ['move', 'aim']) {
     const s = sticks[k];
@@ -859,7 +1033,7 @@ function drawHUD() {
 
 // ---------- Bucle y pantallas ----------
 const $ = id => document.getElementById(id);
-function show(id) { for (const s of ['menu', 'pause', 'over']) $(s).classList.toggle('on', s === id); }
+function show(id) { for (const s of ['menu', 'pause', 'over', 'cards']) $(s).classList.toggle('on', s === id); }
 function startGame() { initAudio(); newGame(); state = 'play'; show(null); last = performance.now(); }
 function pauseGame() { if (state !== 'play') return; state = 'pause'; sticks.move = sticks.aim = null; mouse.down = false; show('pause'); }
 function resumeGame() { state = 'play'; show(null); last = performance.now(); }
