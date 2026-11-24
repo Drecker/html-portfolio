@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bloqueados">
 <meta name="theme-color" content="#14110f">
+<meta name="game-version" content="1.4.0">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -106,6 +107,7 @@
     <button class="sec" data-go="settings">⚙️ Ajustes</button>
   </div>
   <p id="best" class="small"></p>
+  <p class="small" id="ver" style="position:absolute;bottom:calc(env(safe-area-inset-bottom) + 6px);right:calc(env(safe-area-inset-right) + 12px);margin:0"></p>
   <p class="small">Tip: en Safari usa “Compartir → Agregar a inicio” y gira el iPhone en horizontal.</p>
 </div>
 
@@ -201,6 +203,21 @@
 
 <script>
 "use strict";
+// ---------- Versión: si hay una más nueva publicada, recarga sola ----------
+const VERSION = document.querySelector('meta[name="game-version"]').content;
+document.getElementById('ver').textContent = 'v' + VERSION;
+(async function checkUpdate() {
+  if (location.protocol === 'file:') return;
+  try {
+    const res = await fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store' });
+    const m = (await res.text()).match(/name="game-version" content="([^"]+)"/);
+    if (!m || m[1] === VERSION) return;
+    if (sessionStorage.getItem('bloq_reload') === m[1]) return; // evita recargar en bucle
+    sessionStorage.setItem('bloq_reload', m[1]);
+    const q = new URLSearchParams(location.search); q.set('v', m[1]);
+    location.replace(location.pathname + '?' + q.toString());
+  } catch (e) { }
+})();
 // ---------- Setup ----------
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 let W = 0, H = 0, DPR = 1, SCALE = 1;
@@ -1112,7 +1129,7 @@ function loadPeerLib() {
   return new Promise((res, rej) => {
     if (window.Peer) return res();
     const s = document.createElement('script');
-    s.src = 'peerjs.min.js'; s.onload = () => res(); s.onerror = () => rej(new Error('lib'));
+    s.src = 'peerjs.min.js?v=' + VERSION; s.onload = () => res(); s.onerror = () => rej(new Error('lib'));
     document.head.appendChild(s);
   });
 }
