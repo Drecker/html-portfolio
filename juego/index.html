@@ -6,13 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bloqueados">
+<meta name="apple-mobile-web-app-title" content="Zombichos">
 <meta name="theme-color" content="#14110f">
-<meta name="game-version" content="1.9.1">
+<meta name="game-version" content="1.9.2">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
-<title>Bloqueados: Horda Mutante</title>
+<title>Zombichos: Horda Mutante</title>
 <style>
   @font-face{font-family:'Bungee';src:url(fonts/bungee.woff2) format('woff2');font-display:swap}
   html,body{margin:0;height:100%;background:#14110f;overflow:hidden;
@@ -108,7 +108,7 @@
 
 <div id="menu" class="screen on">
   <div class="topbar"><span class="coins">🪙 <span class="coinval">0</span></span></div>
-  <div class="logo">BLOQUEADOS<small>HORDA MUTANTE</small></div>
+  <div class="logo">ZOMBICHOS<small>HORDA MUTANTE</small></div>
   <div class="row">
     <button id="play" class="big">▶ JUGAR</button>
     <button id="online" class="big online">🌐 EN LÍNEA</button>
@@ -1723,9 +1723,9 @@ function roomLink() {
   return location.origin + location.pathname + '?' + q.toString();
 }
 async function shareRoom() {
-  const url = roomLink(), text = '¡Únete a mi partida de Bloqueados! Código: ' + NET.code;
+  const url = roomLink(), text = '¡Únete a mi partida de Zombichos! Código: ' + NET.code;
   try {
-    if (navigator.share) { await navigator.share({ title: 'Bloqueados', text, url }); return; }
+    if (navigator.share) { await navigator.share({ title: 'Zombichos', text, url }); return; }
     await navigator.clipboard.writeText(text + '\n' + url); netStatus('¡Enlace copiado! Pégalo en WhatsApp o donde quieras.');
   } catch (e) { netStatus('Comparte este enlace: ' + url); }
 }

@@ -1,6 +1,6 @@
 {
-  "name": "Bloqueados: Horda Mutante",
-  "short_name": "Bloqueados",
+  "name": "Zombichos: Horda Mutante",
+  "short_name": "Zombichos",
   "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "landscape",
