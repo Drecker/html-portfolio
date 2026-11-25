@@ -1,4 +1,4 @@
-# Instrucciones para Claude: proyecto "Bloqueados: Horda Mutante"
+# Instrucciones para Claude: proyecto "Zombichos: Horda Mutante"
 
 Este repositorio es el portafolio de Saúl y contiene un juego de zombis para iPhone/web hecho en un solo archivo HTML (canvas + JavaScript, sin dependencias de compilación). Habla siempre en **español (México)** con el dueño del repo.
 
@@ -24,6 +24,7 @@ Si el dueño pide un cambio sin decir a cuál versión, **aplícalo solo en `jue
 
 - Partida en solitario y en línea comparten la lógica: el anfitrión corre `update()`; los invitados reciben "fotos" del estado (`buildSnap` / `applySnap`). Si agregas algo nuevo que se vea en pantalla (enemigos, proyectiles, objetos), **inclúyelo en la foto** para que los invitados también lo vean.
 - Los efectos visuales/sonoros pasan por `fx(nombre, ...)` para que se repliquen a los invitados.
+- El juego se llamaba "Bloqueados"; ahora se llama **Zombichos** (la versión base sigue con el nombre viejo). Las claves internas `bloqueados_save_v1` (guardado) y `bloqueados-v1-` (salas en línea) se dejaron así a propósito: cambiarlas borraría el progreso de los jugadores y rompería el modo en línea entre versiones.
 - El guardado (monedas, mejoras, récords) está en `localStorage` con la clave `bloqueados_save_v1`; no rompas su formato (agrega campos con valores por defecto).
 - El video promocional de TikTok se generó con un script de Playwright que avanza el juego cuadro por cuadro; si el dueño pide otro video, se puede repetir la técnica.
 
