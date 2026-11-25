@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zombichos">
 <meta name="theme-color" content="#14110f">
-<meta name="game-version" content="1.9.2">
+<meta name="game-version" content="1.10.0">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -153,6 +153,12 @@
     <p>🔫 Pistola (infinita) · ⚡ Metralleta · 💥 Escopeta · 🔥 Lanzallamas (quema) · 🗡️ Katana (infinita, de cerca, corta botellas en el aire) · 🔷 Rayo (atraviesa todo).</p>
     <p>🧱 <b>Bloques:</b> empiezas con 8. Pon bloques frente a ti para armar tu <b>fortaleza</b>: los zombis no pasan y tienen que romperlos, pero <b>tus balas sí pasan por encima</b>.</p>
     <p>🧨 <b>Dinamita:</b> se pone como un bloque. <b>Explota si le disparas</b>, si un zombi la rompe o si le llega fuego. ¡Explota fortísimo: aléjate antes!</p>
+    <h3>Contra reloj ⏱</h3>
+    <p>Cada oleada tiene tiempo (la barra azul bajo el número de oleada). Si se acaba, <b>llega la siguiente oleada y los zombis que no mataste se juntan con los nuevos</b>. Si la limpias antes, ganas un <b>bono de puntos</b> por el tiempo que te sobró.</p>
+    <h3>Más premios de la caja ❓</h3>
+    <p>Si ya tienes un arma, la caja la sube de <b>estrella ★</b> (hasta ★★★: más daño y más rápida). También pueden salir poderes: 😡 <b>Furia</b> (doble daño), ☢️ <b>Bomba nuclear</b> (borra la pantalla), 🤖 <b>Torreta</b> (dispara sola), 🛡️ <b>Escudo</b> y 💰 <b>Premio gordo</b>.</p>
+    <h3>Misiones y rachas 🎯</h3>
+    <p>Cada partida te da <b>3 misiones al azar</b> que pagan monedas extra (míralas en la pausa). Encadena bajas para lograr <b>¡MASACRE!</b> (10), <b>¡IMPARABLE!</b> (20) y <b>¡LEYENDA!</b> (30) y ganar puntos extra.</p>
     <h3>Oleadas especiales</h3>
     <p>A veces una oleada trae sorpresa: <b>Estampida</b> (puros corredores), <b>Apagón</b> (solo ves cerca de tu linterna), <b>Fiebre de oro</b> (dorados y puntos dobles) o <b>Enjambre</b> (muchísimos zombis más débiles). Los últimos 3 zombis de cada oleada corren hacia ti para que no tengas que buscarlos.</p>
     <h3>En línea</h3>
@@ -593,6 +599,9 @@ const FX = {
   },
   pick(pid) { if (isMe(pid)) sfx.pick(); },
   bossdown(x, y) { splat(x, y, 'rgba(70,30,100,.8)', 60, 50); shake = Math.max(shake, 16); hitStop = 0.25; flashes.push({ x, y, r: 260, t: 0.5, max: 0.5, c: '200,140,255' }); },
+  streak(txt, pts) { streakTxt = txt + '\n+' + pts; streakT = 1.4; shake = Math.max(shake, 6); tone(500, 1000, 0.12, 0.2); setTimeout(() => tone(750, 1500, 0.18, 0.2), 110); },
+  nuke(x, y) { flashes.push({ x, y, r: 900, t: 0.7, max: 0.7, c: '255,255,230' }); shake = 22; hitStop = 0.2; sfx.boom(); setTimeout(() => sfx.boom(), 120); },
+  power(pid, txt) { if (isMe(pid)) { banner = txt; bannerT = 2.2; bannerMax = 2.2; sfx.wave(); } },
   toast(txt) { toasts.push({ txt, t: 3.5 }); sfx.join(); },
   died(pid, x, y) { splat(x, y, 'rgba(110,14,14,.8)', 30, 20); for (let i = 0; i < 14; i++) addP(x, y, rand(-140, 140), rand(-140, 140), 0.6, '#2f6fb3', 4); if (isMe(pid)) { shake = 14; sfx.hurt(); } },
 };
@@ -632,12 +641,14 @@ function triggerTNT(idx, owner, delay) {
 }
 let wave = 0, waveTotal = 1, toSpawn = 0, spawnTimer = 0, waveDelay = 0, score = 0, combo = 1, comboTimer = 0, kills = 0, shake = 0, flowTimer = 0;
 let flashes = [], hitStop = 0;
+let waveTimer = 0, waveTimeMax = 1, waveCleared = true, turrets = [], missions = [], missionCoins = 0, missionT = 0, streakTxt = '', streakT = 0, earlyClears = 0, boxesOpened = 0, goldKills = 0, maxCombo = 0;
 let banner = '', bannerT = 0, bannerMax = 1, warn = null, bossCount = 0, bossKills = 0, runTime = 0, nextId = 1, hurtFlash = 0, cardsOpen = false;
 function makePlayer(id, name, meta, ci) {
   const max = 100 + (+meta.hp || 0) * 10;
   const pl = { id, name: String(name || 'Jugador').slice(0, 12), ci, meta, x: WW / 2 + rand(-40, 40), y: WH / 2 + rand(-15, 15), r: 11,
     hp: max, max, ang: 0, speed: 160, inv: 1.5, cd: 0, w: 0, walk: 0, acid: 0, shield: 0, choosing: false,
     ammo: WEAPONS.map(w => w.ammo === Infinity ? Infinity : 0), unlocked: WEAPONS.map((w, i) => i === 0),
+    stars: WEAPONS.map(() => 0), fury: 0, killsBy: {},
     level: 1, xp: 0, buffs: [], pendingCards: 0, dead: false, kills: 0, killStreak: 0, input: { mx: 0, my: 0, a: 0, sh: false } };
   { const b = WI('build'); pl.unlocked[b] = true; pl.ammo[b] = 8; } // empiezas con algunos bloques para tu fortaleza
   // quien entra a media partida en línea no llega con las manos vacías
@@ -649,12 +660,39 @@ function resetWorld() {
   paintFloor();
   enemies = []; bullets = []; fireballs = []; puddles = []; particles = []; pickups = []; beams = []; floats = []; toasts = [];
   boxes = []; rolls = []; grants = []; slashes = []; fires = []; tntQ = []; mod = ''; modLast = ''; clearBlocks();
+  waveTimer = 0; waveTimeMax = 1; waveCleared = true; turrets = []; missions = []; missionCoins = 0; missionT = 0; streakTxt = ''; streakT = 0; earlyClears = 0; boxesOpened = 0; goldKills = 0; maxCombo = 0;
   wave = 0; waveTotal = 1; toSpawn = 0; spawnTimer = 0; waveDelay = 1.5; score = 0; combo = 1; comboTimer = 0; kills = 0; shake = 0; flowTimer = 0;
   banner = ''; bannerT = 0; warn = null; flashes = []; hitStop = 0; bossCount = 0; bossKills = 0; runTime = 0; nextId = 1; hurtFlash = 0; cardsOpen = false; evQueue = [];
   players = []; P = null;
 }
+const MISSIONS = [
+  { t: 'Mata 40 con el lanzallamas', g: 40, c: 80, v: () => P.killsBy.flame || 0 },
+  { t: 'Mata 30 con la katana', g: 30, c: 80, v: () => P.killsBy.katana || 0 },
+  { t: 'Mata 60 con la escopeta', g: 60, c: 80, v: () => P.killsBy.shotgun || 0 },
+  { t: 'Mata 100 con la metralleta', g: 100, c: 80, v: () => P.killsBy.uzi || 0 },
+  { t: 'Mata 50 solo con la pistola', g: 50, c: 70, v: () => P.killsBy.pistol || 0 },
+  { t: 'Llega a la oleada 8', g: 8, c: 100, v: () => wave },
+  { t: 'Llega a la oleada 12', g: 12, c: 160, v: () => wave },
+  { t: 'Limpia 3 oleadas antes de tiempo', g: 3, c: 90, v: () => earlyClears },
+  { t: 'Haz un combo de 25', g: 25, c: 70, v: () => maxCombo },
+  { t: 'Abre 3 cajas misteriosas', g: 3, c: 70, v: () => boxesOpened },
+  { t: 'Mata 5 zombis dorados', g: 5, c: 90, v: () => goldKills },
+  { t: 'Derrota a un jefe', g: 1, c: 150, v: () => bossKills },
+];
+function pickMissions() {
+  const pool = MISSIONS.slice(); missions = [];
+  while (missions.length < 3) missions.push(Object.assign({ done: false }, pool.splice((Math.random() * pool.length) | 0, 1)[0]));
+}
+function checkMissions(dt) {
+  if (isClient() || !P) return;
+  missionT -= dt; if (missionT > 0) return; missionT = 0.5;
+  for (const m of missions) if (!m.done && m.v() >= m.g) {
+    m.done = true; missionCoins += m.c;
+    toasts.push({ txt: '✅ ' + m.t + '  +' + m.c + ' 🪙', t: 3.5 }); sfx.buy();
+  }
+}
 function newGame() {
-  resetWorld();
+  resetWorld(); pickMissions(); toasts.push({ txt: '🎯 Tienes 3 misiones: míralas en pausa', t: 4 });
   P = makePlayer(NET.myId, myName(), myMeta(), 0);
   players.push(P);
   computeFlow();
@@ -690,17 +728,19 @@ function startWave() {
   }
   modLast = mod;
   // oleadas más cortas e intensas
-  toSpawn = Math.round(Math.min(10 + wave * 3, 45) * mul * (mod === 'enjambre' ? 1.7 : 1));
+  const leftover = Math.max(0, toSpawn); // los que no salieron se suman a la nueva oleada
+  toSpawn = leftover + Math.round(Math.min(10 + wave * 3, 45) * mul * (mod === 'enjambre' ? 1.7 : 1));
   spawnTimer = 0;
   let msg = 'OLEADA ' + wave;
   if (wave % 10 === 0) {
-    toSpawn = Math.round(Math.min(6 + wave, 30) * mul);
+    toSpawn = leftover + Math.round(Math.min(6 + wave, 30) * mul);
     msg += '\n☠ JEFE: ' + spawnBoss() + ' ☠';
   } else if (wave % 5 === 0) {
     msg += '\n★ MINI-JEFE: BRUTO DORADO ★';
     spawnEnemy('brute', true, 4, 22);
   } else if (mod) msg += '\n' + MODS[mod][0] + ' · ' + MODS[mod][1];
   waveTotal = toSpawn + enemies.length;
+  waveTimeMax = waveTimer = (wave % 10 === 0 ? 75 : 28 + Math.min(wave, 20) * 1.6) + (enemies.length ? 6 : 0); waveCleared = false;
   fx('banner', msg, msg.includes('\n') ? 3 : 2.2, 'wave');
   if (wave >= 2 && boxes.length < 2) spawnBox();
   const FIRST = { 2: 'spitter', 3: 'runner', 4: 'thrower', 5: 'brute', 10: 'boss' };
@@ -771,14 +811,46 @@ function spawnBox(x, y) {
   boxes.push({ id: nextId++, x, y, prog: 0, open: 0 });
   fx('box', r0(x), r0(y));
 }
+// Premios especiales de la caja (después de las armas en la ruleta)
+const SPECIALS = [
+  { id: 'furia', ic: '😡', name: 'Furia' }, { id: 'nuke', ic: '☢️', name: 'Bomba nuclear' }, { id: 'torreta', ic: '🤖', name: 'Torreta' },
+  { id: 'escudo', ic: '🛡️', name: 'Escudo' }, { id: 'oro', ic: '💰', name: 'Premio gordo' },
+];
+const BOX_ITEMS = () => WEAPONS.slice(1).map((w, k) => ({ ic: w.ic, name: w.name, wi: k + 1 })).concat(SPECIALS.map((s, k) => ({ ic: s.ic, name: s.name, sp: k })));
 function openBox(bx, pl) {
-  bx.open = 2.2; bx.prog = 1;
-  const cand = WEAPONS.map((w, i) => i).filter(i => i > 0);
-  const missing = cand.filter(i => !pl.unlocked[i]);
-  const pool = missing.length && Math.random() < 0.8 ? missing : cand;
-  const wi = pool[(Math.random() * pool.length) | 0];
-  fx('roulette', r0(bx.x), r0(bx.y), wi, pl.id);
-  grants.push({ pl, wi, t: 1.6 });
+  bx.open = 2.2; bx.prog = 1; boxesOpened++;
+  const items = BOX_ITEMS();
+  const missing = items.filter(it => it.wi && !pl.unlocked[it.wi]);
+  const upgradable = items.filter(it => it.wi && pl.unlocked[it.wi] && pl.stars[it.wi] < 3);
+  const r = Math.random();
+  let pick;
+  if (missing.length && r < 0.45) pick = missing[(Math.random() * missing.length) | 0];
+  else if (upgradable.length && r < 0.7) pick = upgradable[(Math.random() * upgradable.length) | 0];
+  else pick = items.filter(it => it.sp !== undefined)[(Math.random() * SPECIALS.length) | 0];
+  const idx = items.indexOf(pick);
+  fx('roulette', r0(bx.x), r0(bx.y), idx, pl.id);
+  grants.push({ pl, item: idx, t: 1.6 });
+}
+function giveItem(pl, idx) {
+  const it = BOX_ITEMS()[idx];
+  if (!it) return;
+  if (it.wi) {
+    if (pl.unlocked[it.wi] && pl.stars[it.wi] < 3) { // ya la tienes: sube de estrella
+      pl.stars[it.wi]++; if (WEAPONS[it.wi].give) pl.ammo[it.wi] += giveOf(pl, it.wi);
+      fx('power', pl.id, it.ic + ' ' + it.name.toUpperCase() + ' ' + '★'.repeat(pl.stars[it.wi]) + '\n+30% daño y más rápida');
+      if (!isMe(pl.id)) fx('toast', pl.name + ' mejoró ' + it.name + ' ' + '★'.repeat(pl.stars[it.wi]));
+    } else giveWeapon(pl, it.wi);
+    return;
+  }
+  const sp = SPECIALS[it.sp].id;
+  if (sp === 'furia') { pl.fury = 12; fx('power', pl.id, '😡 ¡FURIA!\ndoble daño por 12 segundos'); }
+  else if (sp === 'escudo') { pl.shield = Math.max(pl.shield || 0, 8); fx('power', pl.id, '🛡️ ¡ESCUDO!\ninmortal por 8 segundos'); }
+  else if (sp === 'oro') { const pts = 500 * Math.max(1, wave); score += pts; fx('power', pl.id, '💰 ¡PREMIO GORDO!\n+' + pts + ' puntos'); }
+  else if (sp === 'torreta') { turrets.push({ x: pl.x + 26, y: pl.y + 10, ang: 0, cd: 0, t: 20, owner: pl }); fx('power', pl.id, '🤖 ¡TORRETA!\ndispara sola por 20 segundos'); }
+  else if (sp === 'nuke') {
+    fx('nuke', r0(pl.x), r0(pl.y)); fx('banner', '☢️ ¡BOMBA NUCLEAR!', 2, null);
+    for (const e of enemies) { if (e.type === 'boss') { e.hp -= e.max * 0.15; e.flash = 0.2; } else if (e.hp > 0) { e.hp = 0; killEnemy(e, pl); } }
+  }
 }
 function giveWeapon(pl, wi) {
   const isNew = !pl.unlocked[wi];
@@ -1019,7 +1091,7 @@ function bossDefeated(e) {
 function fire(pl) {
   const w = WEAPONS[pl.w];
   if (pl.cd > 0 || !(pl.ammo[pl.w] > 0)) return;
-  pl.cd = w.rate / (1 + bonus(pl, 'rate'));
+  pl.cd = w.rate / (1 + bonus(pl, 'rate')) / (1 + 0.15 * ((pl.stars && pl.stars[pl.w]) || 0));
   if (pl.ammo[pl.w] !== Infinity) pl.ammo[pl.w]--;
   const a = pl.ang, dx = Math.cos(a), dy = Math.sin(a), mx = pl.x + dx * 16, my = pl.y + dy * 16;
   if (isPlaceable(w)) {
@@ -1074,7 +1146,8 @@ function fire(pl) {
 }
 function damageEnemy(e, dmg, dx, dy, pl, silent) {
   if (e.hp <= 0) return;
-  e.hp -= dmg * (1 + (pl ? bonus(pl, 'dmg') : 0)); e.flash = 0.08;
+  const star = pl && pl.stars ? pl.stars[pl.w] || 0 : 0;
+  e.hp -= dmg * (1 + (pl ? bonus(pl, 'dmg') : 0)) * (1 + 0.3 * star) * (pl && pl.fury > 0 ? 2 : 1); e.flash = 0.08;
   if (e.type !== 'boss' && !(e.gold && e.r > 20)) { e.x += dx * 4; e.y += dy * 4; }
   if (!silent) fx('hit', r0(e.x), r0(e.y), r2(dx), r2(dy), TYPES.indexOf(e.type));
   if (e.hp <= 0) killEnemy(e, pl);
@@ -1083,6 +1156,10 @@ function killEnemy(e, pl) {
   kills++;
   if (pl) pl.kills++;
   combo = Math.min(combo + 1, 30); comboTimer = 2.2 * (1 + (pl ? bonus(pl, 'combo') : 0));
+  maxCombo = Math.max(maxCombo, combo); if (e.gold) goldKills++;
+  if (pl) { const wid = WEAPONS[pl.w] ? WEAPONS[pl.w].id : 'pistol'; pl.killsBy[wid] = (pl.killsBy[wid] || 0) + 1; }
+  const STREAK = { 10: '¡MASACRE!', 20: '¡IMPARABLE!', 30: '¡LEYENDA!' };
+  if (STREAK[combo] && (combo !== 30 || streakT <= 0)) { score += combo * 50; fx('streak', STREAK[combo], combo * 50); }
   // el que lo mata gana toda la experiencia; sus compañeros, la mitad
   for (const p of players) gainXp(p, (e.xp || 3) * (p === pl || !pl ? 1 : 0.5));
   if (e.type === 'boss') bossDefeated(e);
@@ -1160,6 +1237,7 @@ function updatePlayer(pl, dt) {
   } else { movePlayer(pl, inp.mx, inp.my, dt); pl.ang = inp.a || 0; }
   if (bonus(pl, 'regen')) pl.hp = Math.min(pl.max, pl.hp + bonus(pl, 'regen') * dt);
   pl.cd -= dt; pl.inv -= dt; pl.failT = (pl.failT || 0) - dt; pl.blastInv = (pl.blastInv || 0) - dt; if (pl.acid > 0) pl.acid -= dt; if (pl.burnT > 0) pl.burnT -= dt;
+  if (pl.fury > 0) pl.fury -= dt;
   if (pl.shield > 0) { pl.shield -= dt; if (pl.shield <= 0) pl.choosing = false; }
   if (inp.sh && !pl.choosing) fire(pl);
 }
@@ -1171,9 +1249,21 @@ function update(dt) {
 
   // oleadas
   if (toSpawn <= 0 && enemies.length === 0) {
+    if (!waveCleared && wave > 0) { // ¡limpiaste la oleada! bono por el tiempo que te sobró
+      waveCleared = true;
+      const secs = Math.ceil(Math.max(0, waveTimer)), bonusPts = secs * 15 * wave;
+      if (secs >= 3) { score += bonusPts; earlyClears++; fx('banner', '¡LIMPIEZA!\n+' + bonusPts + ' puntos · te sobraron ' + secs + ' s', 2.2, 'buy'); }
+    }
     waveDelay -= dt;
     if (waveDelay <= 0) { startWave(); waveDelay = 3; }
-  } else if (toSpawn > 0) {
+  } else {
+    if (wave > 0) {
+      const was = waveTimer; waveTimer -= dt;
+      if (was > 5 && waveTimer <= 5) fx('sfx', 'hurt');
+      if (waveTimer <= 0) { fx('banner', '⏱ ¡SE ACABÓ EL TIEMPO!\nlos zombis se juntan con la siguiente oleada', 2.6, 'wave'); shake = 10; startWave(); }
+    }
+  }
+  if (toSpawn > 0) {
     spawnTimer -= dt;
     const n = players.length, maxAlive = (18 + wave * 3) * (1 + 0.3 * (n - 1)) * (mod === 'enjambre' ? 1.4 : 1);
     if (spawnTimer <= 0 && enemies.length < maxAlive) {
@@ -1372,7 +1462,23 @@ function update(dt) {
     else bx.prog = Math.max(0, bx.prog - dt * 1.5);
   }
   boxes = boxes.filter(b => !b.dead);
-  for (const g of grants) { g.t -= dt; if (g.t <= 0) { g.done = true; giveWeapon(g.pl, g.wi); } }
+  for (const g of grants) { g.t -= dt; if (g.t <= 0) { g.done = true; giveItem(g.pl, g.item); } }
+  // torretas: disparan solas al zombi más cercano
+  for (const tu of turrets) {
+    tu.t -= dt; tu.cd -= dt;
+    let n = null, bd = 330 * 330;
+    for (const e of enemies) { const d = dist2(e.x, e.y, tu.x, tu.y); if (d < bd && lineOfSight(tu.x, tu.y, e.x, e.y)) { bd = d; n = e; } }
+    if (n) {
+      tu.ang = Math.atan2(n.y - tu.y, n.x - tu.x);
+      if (tu.cd <= 0) {
+        tu.cd = 0.11; const a = tu.ang + rand(-0.06, 0.06), mx = tu.x + Math.cos(a) * 14, my = tu.y + Math.sin(a) * 14;
+        bullets.push({ x: mx, y: my, px: tu.x, py: tu.y, vx: Math.cos(a) * 1000, vy: Math.sin(a) * 1000, life: 0.5, max: 0.55, dmg: 14, ci: 1, pierce: 0, hit: [], owner: tu.owner });
+        if (Math.random() < 0.5) fx('shot', r0(mx), r0(my), r2(a), 1, 'torreta');
+      }
+    }
+  }
+  turrets = turrets.filter(tu => tu.t > 0);
+  checkMissions(dt);
   grants = grants.filter(g => !g.done);
 
   // recogibles (vida o munición)
@@ -1436,7 +1542,7 @@ function cosmetic(dt) {
   for (const t of toasts) t.t -= dt;
   toasts = toasts.filter(t => t.t > 0);
   shake *= Math.exp(-dt * 10);
-  bannerT -= dt; hurtFlash -= dt;
+  bannerT -= dt; hurtFlash -= dt; streakT -= dt;
   if (warn && !(bannerT > 0 && warn.t > 3.6)) { const was = warn.t; warn.t -= dt; if (was > 3.6 && warn.t <= 3.6) { tone(880, 440, 0.25, 0.18, 'square'); setTimeout(() => tone(880, 440, 0.25, 0.18, 'square'), 300); } if (warn.t <= 0) warn = null; }
 }
 
@@ -1547,7 +1653,8 @@ function buildSnap() {
     sc: score, cb: combo, ct: r2(comboTimer), bk: bossKills, k: kills,
     pl: players.map(p => [p.id, p.name, p.ci, r1(p.x), r1(p.y), r2(p.ang), Math.ceil(p.hp), p.max, p.inv > 0 ? 1 : 0, p.w, p.dead ? 1 : 0,
       p.level, r2(p.xp / xpNeed(p)), p.acid > 0 ? 1 : 0, p.ammo.map(a => a === Infinity ? -1 : a), p.unlocked.map(u => u ? 1 : 0),
-      p.buffs.map(b => [b.stat, b.val, b.waves, b.ic]), p.pendingCards, p.kills, p.cardsApplied || 0, r1(Math.max(0, p.shield || 0)), p.choosing ? 1 : 0]),
+      p.buffs.map(b => [b.stat, b.val, b.waves, b.ic]), p.pendingCards, p.kills, p.cardsApplied || 0, r1(Math.max(0, p.shield || 0)), p.choosing ? 1 : 0, p.stars, r1(Math.max(0, p.fury || 0))]),
+    tu: turrets.map(t => [r0(t.x), r0(t.y), r2(t.ang), r1(t.t)]), wtm: r1(waveTimer), wtx: r1(waveTimeMax),
     en: enemies.map(e => [e.id, TYPES.indexOf(e.type), r1(e.x), r1(e.y), r0(e.hp), r0(e.max), r2(e.ang), e.flash > 0 ? 1 : 0,
       e.mouthT > 0 ? 1 : 0, e.windup > 0 ? 1 : 0, e.charge > 0 ? 1 : 0, e.name || 0, e.gold ? 1 : 0, e.burn > 0 ? 1 : 0, e.r]),
     bu: bullets.map(b => [r0(b.x), r0(b.y), r0(b.vx), r0(b.vy), b.ci, r2(b.life)]),
@@ -1626,10 +1733,11 @@ function clientLost() {
   else if ($('net').classList.contains('on')) netStatus('Se perdió la conexión con la sala.');
 }
 function applySnap(s) {
+  waveTimer = s.wtm || 0; waveTimeMax = s.wtx || 1; turrets = (s.tu || []).map(a => ({ x: a[0], y: a[1], ang: a[2], t: a[3] }));
   wave = s.w; waveTotal = s.wt || 1; toSpawn = s.ts; waveDelay = s.wd; score = s.sc; combo = s.cb; comboTimer = s.ct; bossKills = s.bk; kills = s.k;
   const oldP = new Map(players.map(p => [p.id, p]));
   players = s.pl.map(a => {
-    const [id, name, ci, x, y, ang, hp, max, inv, w, dead, level, xpf, acid, ammo, unl, buffs, pc, kl, ca, sh, chs] = a;
+    const [id, name, ci, x, y, ang, hp, max, inv, w, dead, level, xpf, acid, ammo, unl, buffs, pc, kl, ca, sh, chs, stars, fury] = a;
     let p = oldP.get(id);
     if (!p) p = { id, x, y, tx: x, ty: y, r: 11, walk: 0, ang, w: 0, speed: 160, meta: {}, input: {} };
     const me = id === NET.myId;
@@ -1639,7 +1747,7 @@ function applySnap(s) {
       if (!p.init || (p.dead && !dead) || dist2(p.x, p.y, x, y) > 160 * 160) { p.x = x; p.y = y; }
       p.init = true;
     } else { p.tx = x; p.ty = y; p.ang = ang; p.w = w; }
-    Object.assign(p, { name, ci, hp, max, inv, dead: !!dead, level, xpFrac: xpf, acid, unlocked: unl.map(Boolean), buffs: buffs.map(b => ({ stat: b[0], val: b[1], waves: b[2], ic: b[3] })), pendingCards: pc, kills: kl, shield: sh || 0, choosing: !!chs });
+    Object.assign(p, { name, ci, hp, max, inv, dead: !!dead, level, xpFrac: xpf, acid, unlocked: unl.map(Boolean), buffs: buffs.map(b => ({ stat: b[0], val: b[1], waves: b[2], ic: b[3] })), pendingCards: pc, kills: kl, shield: sh || 0, choosing: !!chs, stars: stars || WEAPONS.map(() => 0), fury: fury || 0 });
     p.ammo = ammo.map(v => v < 0 ? Infinity : v);
     if (me) {
       if (!(p.ammo[p.w] > 0)) p.w = 0;
@@ -1859,6 +1967,7 @@ function draw() {
     else if (grid[gy * GW + gx] === BLOCK || grid[gy * GW + gx] === TNT) list.push({ k: 'blk', y: gy * T + T - 0.5, gx, gy });
   for (const e of enemies) list.push({ k: 'e', y: e.y, o: e });
   for (const b of boxes) list.push({ k: 'x', y: b.y, o: b });
+  for (const t of turrets) list.push({ k: 't', y: t.y, o: t });
   for (const pl of players) if (!pl.dead) list.push({ k: 'p', y: pl.y, o: pl });
   list.sort((a, b) => a.y - b.y);
   const WALLH = 28;
@@ -1888,11 +1997,25 @@ function draw() {
       }
     } else if (it.k === 'blk') {
       drawBlock(it.gx, it.gy, now);
+    } else if (it.k === 't') { // torreta
+      const tu = it.o, blink = tu.t < 3 && Math.floor(now / 120) % 2;
+      shadow(tu.x, tu.y, 10);
+      box(tu.x, tu.y, 16, 12, 10, 0, blink ? '#ffffff' : '#5a6a7a');
+      box(tu.x, tu.y, 12, 10, 8, 10, '#8aa0b4');
+      drawGun(tu.x, tu.y, tu.ang, 16, 18, '#2a3440');
+      ctx.fillStyle = '#7ad3ff'; ctx.fillRect(tu.x - 2, tu.y - 22, 4, 3);
     } else if (it.k === 'x') {
       drawMysteryBox(it.o, now);
     } else {
       const pl = it.o;
       const shielded = pl.shield > 0;
+      if (pl.fury > 0) { // furia: aura roja
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(pl.x, pl.y - 14, 2, pl.x, pl.y - 14, 32);
+        g.addColorStop(0, 'rgba(255,60,30,.5)'); g.addColorStop(1, 'rgba(255,40,20,0)');
+        ctx.fillStyle = g; ctx.fillRect(pl.x - 32, pl.y - 46, 64, 64);
+        ctx.globalCompositeOperation = 'source-over';
+      }
       if (pl.inv > 0 && !shielded && Math.floor(now / 50) % 2) continue;
       if (shielded) { // inmortal: aura dorada que late
         ctx.globalCompositeOperation = 'lighter';
@@ -2079,11 +2202,11 @@ function drawMysteryBox(bx, now) {
 }
 // Ruleta de armas sobre la caja abierta
 function drawRolls(now) {
-  const list = WEAPONS.map((w, i) => i).filter(i => i > 0);
+  const items = BOX_ITEMS();
   for (const r of rolls) {
     const spinning = r.t > 0.4;
-    const wi = spinning ? list[Math.floor((1.6 - r.t) * (22 - (1.6 - r.t) * 10)) % list.length] : r.wi;
-    const w = WEAPONS[wi], a = clamp(r.t + 0.8, 0, 1), y = r.y - 60 - (spinning ? 0 : 6);
+    const w = items[spinning ? Math.floor((1.6 - r.t) * (22 - (1.6 - r.t) * 10)) % items.length : r.wi] || items[0];
+    const a = clamp(r.t + 0.8, 0, 1), y = r.y - 60 - (spinning ? 0 : 6);
     ctx.globalAlpha = a;
     ctx.fillStyle = 'rgba(30,14,50,.88)'; roundRect(r.x - 56, y - 26, 112, 40, 10); ctx.fill();
     ctx.strokeStyle = spinning ? '#a070e0' : '#ffe46a'; ctx.lineWidth = spinning ? 2 : 3; ctx.stroke();
@@ -2146,7 +2269,17 @@ function drawWaveCorner(alpha) {
   // píldora a la izquierda del número: restantes o cuenta atrás
   const remaining = enemies.length + toSpawn;
   let txt = null, col = '#fff';
-  if (wave > 0 && remaining > 0) txt = '☠ ' + remaining;
+  if (wave > 0 && remaining > 0) {
+    txt = '☠ ' + remaining;
+    // barra de tiempo de la oleada bajo el número
+    const k = clamp(waveTimer / waveTimeMax, 0, 1), urgent = waveTimer <= 10;
+    const bw2 = 120, bx2 = c.rx - bw2, by2 = c.y + (mod ? 22 : 6);
+    ctx.fillStyle = 'rgba(20,12,6,.7)'; roundRect(bx2, by2, bw2, 14, 7); ctx.fill();
+    ctx.fillStyle = urgent ? (Math.floor(performance.now() / 200) % 2 ? '#ff3a2a' : '#ff8a5a') : '#5ab8ff';
+    if (k > 0) { roundRect(bx2 + 2, by2 + 2, Math.max(8, (bw2 - 4) * k), 10, 5); ctx.fill(); }
+    ctx.font = '9px ' + FONT; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('⏱ ' + Math.ceil(Math.max(0, waveTimer)) + 's', bx2 + bw2 / 2, by2 + 11);
+    ctx.textAlign = 'right';
+  }
   else if (wave > 0 && waveDelay > 0) { txt = '✓ ' + Math.ceil(waveDelay); col = '#b9e34a'; }
   if (mod && MODS[mod]) {
     ctx.textAlign = 'right'; ctx.font = '10px ' + FONT; ctx.lineWidth = 3; ctx.strokeStyle = '#140c06';
@@ -2268,7 +2401,7 @@ function drawHUD() {
   const gapL = safe.l + 250, gapR = W - safe.r - 175;
   const gapW = gapR - gapL, gapX = (gapL + gapR) / 2;
   const hb = hudButtons(), buffsDown = P.buffs.length > 0 && hb.pause.x - 40 - (P.buffs.length - 1) * 38 < safe.l + 252;
-  let panelBottom = gapW >= 300 ? safe.t + 8 : Math.max(safe.t + 104, ly + 4, buffsDown ? cornerWave().y + (mod ? 24 : 10) + 44 : 0);
+  let panelBottom = gapW >= 300 ? safe.t + 8 : Math.max(safe.t + 104, ly + 4, buffsDown ? cornerWave().y + (mod ? 40 : 24) + 44 : 0);
   const colW = gapW >= 300 ? gapW : W - 24, colX = gapW >= 300 ? gapX : W / 2;
   drawOffscreen();
   // mejoras activas
@@ -2277,7 +2410,7 @@ function drawHUD() {
   const buffRowDown = buffsDown;
   P.buffs.forEach((bf, i) => {
     const cw = cornerWave();
-    const x = buffRowDown ? W - safe.r - 12 - 34 - i * 38 : b.pause.x - 40 - i * 38, y = buffRowDown ? cw.y + (mod ? 24 : 10) : b.pause.y + 2;
+    const x = buffRowDown ? W - safe.r - 12 - 34 - i * 38 : b.pause.x - 40 - i * 38, y = buffRowDown ? cw.y + (mod ? 40 : 24) : b.pause.y + 2;
     ctx.fillStyle = 'rgba(0,0,0,.45)'; roundRect(x, y, 34, 38, 8); ctx.fill();
     ctx.font = '17px sans-serif'; ctx.fillText(bf.ic, x + 17, y + 21);
     ctx.font = 'bold 10px -apple-system,sans-serif'; ctx.fillStyle = '#ffcf4a'; ctx.fillText(bf.waves + ' ol', x + 17, y + 34);
@@ -2313,7 +2446,8 @@ function drawHUD() {
   ctx.fillStyle = 'rgba(0,0,0,.5)'; roundRect(wb.x, wb.y, wb.w, wb.h, 14); ctx.fill();
   ctx.strokeStyle = 'rgba(255,207,74,.6)'; ctx.lineWidth = 2; ctx.stroke();
   ctx.textAlign = 'center'; ctx.fillStyle = '#ffcf4a'; ctx.font = '13px ' + FONT;
-  ctx.fillText(w.ic + ' ' + w.name.toUpperCase(), wb.x + wb.w / 2, wb.y + 22);
+  const st = (P.stars && P.stars[P.w]) || 0;
+  ctx.fillText(w.ic + ' ' + w.name.toUpperCase() + (st ? ' ' + '★'.repeat(st) : ''), wb.x + wb.w / 2, wb.y + 22);
   ctx.fillStyle = '#fff'; ctx.font = 'bold 15px -apple-system,sans-serif';
   ctx.fillText(P.ammo[P.w] === Infinity ? '∞' : P.ammo[P.w], wb.x + wb.w / 2, wb.y + 40);
   const n = WEAPONS.length;
@@ -2329,6 +2463,18 @@ function drawHUD() {
   } else if (P.unlocked.some((u, i) => u && i > 0 && P.ammo[i] > 0) && wave <= 3) {
     ctx.font = '11px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.55)';
     ctx.fillText('toca para cambiar', wb.x + wb.w / 2, wb.y - 6);
+  }
+  if (P.fury > 0) {
+    ctx.font = '12px ' + FONT; ctx.fillStyle = '#ff7a5a'; ctx.lineWidth = 4; ctx.strokeStyle = '#1a0e05';
+    const t = '😡 FURIA x2 · ' + Math.ceil(P.fury) + 's'; ctx.strokeText(t, W / 2, wb.y - (P.shield > 0 ? 46 : 28)); ctx.fillText(t, W / 2, wb.y - (P.shield > 0 ? 46 : 28));
+  }
+  if (streakT > 0) { // ¡MASACRE! etc.
+    const k = clamp(streakT / 1.4, 0, 1), sc = 1 + Math.max(0, streakT - 1.15) * 2;
+    ctx.globalAlpha = clamp(streakT * 3, 0, 1); ctx.textAlign = 'center';
+    const ls = streakTxt.split('\n');
+    fancyText(ls[0], W / 2, H * 0.6, Math.round(34 * sc), '#ffe0e0', '#ff3a2a');
+    if (ls[1]) fancyText(ls[1], W / 2, H * 0.6 + 26, 16, '#ffffff', '#ffd040', 4);
+    ctx.globalAlpha = 1;
   }
   if (P.shield > 0) { // aviso de inmortalidad
     ctx.font = '12px ' + FONT; ctx.fillStyle = '#ffe46a'; ctx.lineWidth = 4; ctx.strokeStyle = '#1a0e05';
@@ -2416,7 +2562,7 @@ function menuDemo(dt) {
 const $ = id => document.getElementById(id);
 const SCREENS = ['menu', 'pause', 'over', 'cards', 'shop', 'records', 'help', 'settings', 'net'];
 function show(id) { for (const s of SCREENS) $(s).classList.toggle('on', s === id); }
-function coinsFor() { return Math.floor((Math.floor(score / 40) + wave * 4 + bossKills * 60) * (1 + upLv('coins') * 0.10)); }
+function coinsFor() { return Math.floor((Math.floor(score / 40) + wave * 4 + bossKills * 60 + missionCoins) * (1 + upLv('coins') * 0.10)); }
 const fmt = n => n.toLocaleString('es-MX');
 function refreshCoins() { document.querySelectorAll('.coinval').forEach(el => el.textContent = fmt(save.coins)); }
 function startGame() {
@@ -2428,6 +2574,8 @@ function pauseGame() {
   state = 'pause'; sticks.move = sticks.aim = null; mouse.down = false;
   $('pausenet').innerHTML = isMP() ? `Sala <b>${NET.code}</b> · ${players.length} jugador${players.length > 1 ? 'es' : ''}<br><span class="small">En línea el juego no se detiene.</span>` : '';
   $('quit').textContent = isMP() ? 'SALIR DE LA SALA' : 'SALIR';
+  if (missions.length && !isClient()) $('pausenet').innerHTML += '<div style="margin-top:6px;text-align:left;display:inline-block"><b>🎯 Misiones</b><br>' +
+    missions.map(m => (m.done ? '✅ ' : '⬜ ') + escapeHtml(m.t) + ' <span class="small">' + Math.min(m.g, m.v()) + '/' + m.g + ' · ' + m.c + ' 🪙</span>').join('<br>') + '</div>';
   show('pause');
 }
 function resumeGame() { if (state !== 'pause') return; state = 'play'; show(null); last = performance.now(); }
@@ -2449,6 +2597,8 @@ function endRun(quit, title) {
   $('overtitle').textContent = title || (quit ? 'PARTIDA TERMINADA' : isMP() ? 'CAYÓ TODO EL EQUIPO' : 'TE ATRAPARON');
   $('final').innerHTML = `<div class="stats"><div class="st"><b>${fmt(score)}</b><span>Puntos</span></div><div class="st"><b>${wave}</b><span>Oleada</span></div><div class="st"><b>${me.level}</b><span>Nivel</span></div><div class="st"><b>${me.kills}</b><span>Bajas</span></div></div>`;
   $('earn').textContent = '+' + fmt(earned) + ' 🪙';
+  const md = missions.filter(m => m.done);
+  if (md.length) $('earn').textContent += '  (🎯 ' + md.length + '/3 misiones)';
   $('recnote').innerHTML = score > prevBest && score > 0 ? '🏆 <b>¡Nuevo récord!</b>' : pos >= 0 ? `Quedaste en el lugar <b>#${pos + 1}</b> de tus récords` : 'Récord: ' + fmt(prevBest);
   refreshCoins();
   setTimeout(() => { if (state === 'over') show('over'); }, quit ? 0 : 700);

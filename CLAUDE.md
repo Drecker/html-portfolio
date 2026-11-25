@@ -6,7 +6,7 @@ Este repositorio es el portafolio de Saúl y contiene un juego de zombis para iP
 
 | Carpeta | Qué es | ¿Se modifica? |
 |---|---|---|
-| `juego-base/` | **Versión base congelada** (v1.9.1-base). Es la que se convertirá en app para la **App Store**. | **NO. Nunca la modifiques** salvo que el dueño lo pida de forma explícita diciendo "versión base" o "App Store". |
+| `juego-base/` | **Versión base** (v1.10.0-base). Es la que se convertirá en app para la **App Store**. | **NO. Nunca la modifiques** salvo que el dueño lo pida de forma explícita diciendo "versión base" o "App Store". |
 | `juego/` | **Versión de la comunidad.** Es la que está publicada en la web y se va mejorando con las ideas de los comentarios de TikTok ("Tú decides"). | Sí. Aquí van todos los cambios normales. |
 
 Si el dueño pide un cambio sin decir a cuál versión, **aplícalo solo en `juego/`**.
