@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bloqueados">
 <meta name="theme-color" content="#14110f">
-<meta name="game-version" content="1.8.0">
+<meta name="game-version" content="1.9.0">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -138,18 +138,20 @@
   <div class="scroll">
     <h3>Controles</h3>
     <p>📱 <b>Pulgar izquierdo:</b> moverte. <b>Pulgar derecho:</b> apuntar y disparar. Toca el <b>arma</b> (abajo al centro) para cambiarla.</p>
-    <p>💻 <b>Computadora:</b> WASD para moverte, mouse para apuntar y disparar, Q/E o 1‑7 para cambiar de arma, P para pausar.</p>
+    <p>💻 <b>Computadora:</b> WASD para moverte, mouse para apuntar y disparar, Q/E o 1‑8 para cambiar de arma, P para pausar.</p>
     <h3>Enemigos</h3>
     <p>🟩 <b>Zombi:</b> lento pero nunca se rinde.</p>
     <p>🟨 <b>Corredor:</b> rápido y frágil (desde la oleada 3).</p>
     <p>🤢 <b>Escupidor:</b> vomita ácido en arco. El golpe duele y el charco <b>te hace lento</b> (desde la oleada 2).</p>
-    <p>🦴 <b>Lanzahuesos:</b> te avienta huesos en ráfagas de 3 en línea recta. ¡Esquívalos o córtalos con la katana! (desde la oleada 4)</p>
+    <p>🔥 <b>Incendiario:</b> avienta botellas de fuego. El fuego te quema, quema zombis, rompe tus bloques y <b>hace estallar tu dinamita</b>. Mátalo antes de que llegue a tu fortaleza (desde la oleada 4).</p>
     <p>🟫 <b>Bruto:</b> enorme, resistente y pega fuerte (desde la oleada 5).</p>
     <p>✨ <b>Zombis dorados:</b> más duros, dan muchos puntos y sueltan una <b>caja misteriosa</b>.</p>
     <p>☠️ <b>Jefes:</b> cada 10 oleadas. En las oleadas 5, 15, 25… llega un <b>Bruto Dorado</b> gigante.</p>
     <h3>Armas y caja misteriosa</h3>
     <p>Empiezas con la pistola. Las demás salen de la <b>❓ caja misteriosa</b>: aparece en el mapa cada oleada (una flecha dorada te dice dónde) y también la sueltan los zombis dorados y los jefes. <b>Párate encima</b> para abrirla y gira la ruleta. Si te sale un arma que ya tienes, te da mucha munición.</p>
-    <p>🔫 Pistola (infinita) · ⚡ Metralleta · 💥 Escopeta · 🔥 Lanzallamas (quema) · 🗡️ Katana (infinita, de cerca, corta huesos) · 🧨 Dinamita (se lanza; explota fortísimo, ¡aléjate!) · 🔷 Rayo (atraviesa todo).</p>
+    <p>🔫 Pistola (infinita) · ⚡ Metralleta · 💥 Escopeta · 🔥 Lanzallamas (quema) · 🗡️ Katana (infinita, de cerca, corta botellas en el aire) · 🔷 Rayo (atraviesa todo).</p>
+    <p>🧱 <b>Bloques:</b> empiezas con 8. Pon bloques frente a ti para armar tu <b>fortaleza</b>: los zombis no pasan y tienen que romperlos, pero <b>tus balas sí pasan por encima</b>.</p>
+    <p>🧨 <b>Dinamita:</b> se pone como un bloque. <b>Explota si le disparas</b>, si un zombi la rompe o si le llega fuego. ¡Explota fortísimo: aléjate antes!</p>
     <h3>Oleadas especiales</h3>
     <p>A veces una oleada trae sorpresa: <b>Estampida</b> (puros corredores), <b>Apagón</b> (solo ves cerca de tu linterna), <b>Fiebre de oro</b> (dorados y puntos dobles) o <b>Enjambre</b> (muchísimos zombis más débiles). Los últimos 3 zombis de cada oleada corren hacia ti para que no tengas que buscarlos.</p>
     <h3>En línea</h3>
@@ -305,7 +307,10 @@ const sfx = {
   flame: () => noise(0.13, 1100, 0.14, 0.7),
   slash: () => { noise(0.12, 7000, 0.22, 2); tone(1200, 300, 0.12, 0.07, 'sawtooth'); },
   throw: () => tone(520, 240, 0.14, 0.12, 'triangle'),
-  bone: () => { tone(260, 520, 0.07, 0.12, 'square'); setTimeout(() => tone(260, 520, 0.07, 0.1, 'square'), 70); },
+  build: () => { tone(170, 90, 0.1, 0.25, 'square'); noise(0.08, 900, 0.2); },
+  crack: () => noise(0.07, 1600, 0.18, 3),
+  whoosh: () => { noise(0.45, 700, 0.35, 0.8); tone(180, 60, 0.4, 0.12, 'sawtooth'); },
+  bottle: () => { tone(900, 400, 0.12, 0.08, 'triangle'); },
   box: () => { tone(500, 1000, 0.15, 0.13); setTimeout(() => tone(700, 1400, 0.18, 0.13), 120); },
   tick: () => tone(1300, 1200, 0.03, 0.06),
   join: () => { tone(600, 900, 0.1, 0.15); setTimeout(() => tone(900, 1200, 0.1, 0.15), 100); },
@@ -313,7 +318,7 @@ const sfx = {
 
 // ---------- Mapa ----------
 const T = 40, GW = 35, GH = 25, WW = GW * T, WH = GH * T;
-const WALL = 1, SPAWN = 2;
+const WALL = 1, SPAWN = 2, BLOCK = 3, TNT = 4;
 const grid = new Uint8Array(GW * GH);
 (function buildMap() {
   for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++)
@@ -334,7 +339,7 @@ const tileAt = (x, y) => {
   if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) return -1;
   return grid[gy * GW + gx];
 };
-const solidFor = (v, isPlayer) => v === WALL || v === -1 || (isPlayer && v === SPAWN);
+const solidFor = (v, isPlayer) => v === WALL || v === -1 || v === BLOCK || v === TNT || (isPlayer && v === SPAWN);
 
 // Suelo pre-renderizado (también recibe manchas permanentes)
 const floor = document.createElement('canvas');
@@ -451,6 +456,7 @@ function collideWalls(e, isPlayer) {
     const cx = clamp(e.x, gx * T, gx * T + T), cy = clamp(e.y, gy * T, gy * T + T);
     let dx = e.x - cx, dy = e.y - cy, d = Math.hypot(dx, dy);
     if (d < r) {
+      if (!isPlayer && (v === BLOCK || v === TNT)) e.hitTile = gy * GW + gx; // el zombi choca con tu bloque
       if (d === 0) { pushOut(e, gx, gy, isPlayer); continue; }
       e.x += dx / d * (r - d); e.y += dy / d * (r - d);
     }
@@ -466,10 +472,12 @@ const WEAPONS = [
   { id: 'shotgun', name: 'Escopeta', ic: '💥', rate: 0.75, dmg: 18, spd: 850, spread: 0.5, pellets: 8, life: 0.28, give: 30, snd: 'shotgun' },
   { id: 'flame', name: 'Lanzallamas', ic: '🔥', rate: 0.045, dmg: 4.5, spd: 380, spread: 0.22, pellets: 1, life: 0.42, give: 260, snd: 'flame' },
   { id: 'katana', name: 'Katana', ic: '🗡️', rate: 0.34, dmg: 75, ammo: Infinity, snd: 'slash' },
-  { id: 'dynamite', name: 'Dinamita', ic: '🧨', rate: 0.6, give: 5, snd: 'throw' },
+  { id: 'build', name: 'Bloques', ic: '🧱', rate: 0.22, give: 10, snd: 'build' },
+  { id: 'tnt', name: 'Dinamita', ic: '🧨', rate: 0.3, give: 4, snd: 'build' },
   { id: 'rail', name: 'Rayo', ic: '🔷', rate: 0.95, dmg: 120, give: 16, snd: 'rail' },
 ];
 const WI = id => WEAPONS.findIndex(w => w.id === id);
+const isPlaceable = w => w && (w.id === 'build' || w.id === 'tnt');
 
 // ---------- Guardado ----------
 const SAVE_KEY = 'bloqueados_save_v1';
@@ -567,9 +575,13 @@ const FX = {
     const w = WEAPONS[i];
     if (isMe(pid)) {
       banner = (isNew ? '¡NUEVA ARMA!\n' : '¡MÁS MUNICIÓN!\n') + w.ic + ' ' + w.name.toUpperCase(); bannerT = 2.4; bannerMax = 2.4; sfx.wave();
-      if (P && isNew && w.id !== 'dynamite') P.w = i;
+      if (P && isNew && w.id !== 'tnt' && w.id !== 'build') P.w = i;
     } else toasts.push({ txt: name + ' consiguió ' + w.ic + ' ' + w.name, t: 3 });
   },
+  build(x, y, kind) { sfx.build(); for (let i = 0; i < 8; i++) addP(x + rand(-18, 18), y + rand(-4, 18), rand(-40, 40), -rand(10, 50), 0.4, '#b8a080', 3); },
+  blockHit(x, y) { sfx.crack(); for (let i = 0; i < 4; i++) addP(x + rand(-14, 14), y + rand(-10, 10), rand(-70, 70), -rand(20, 90), 0.35, '#a8743a', 3); },
+  blockBreak(x, y) { sfx.crack(); noise(0.25, 600, 0.3); for (let i = 0; i < 16; i++) addP(x + rand(-16, 16), y + rand(-12, 12), rand(-120, 120), -rand(30, 140), 0.6, i % 2 ? '#a8743a' : '#6a4422', 4); },
+  fireLand(x, y) { sfx.whoosh(); flashes.push({ x, y, r: 110, t: 0.35, max: 0.35, c: '255,140,40' }); for (let i = 0; i < 14; i++) addP(x, y, rand(-110, 110), rand(-110, 110), 0.4, i % 2 ? '#ffb030' : '#ff5a1a', 4); },
   roulette(x, y, wi, pid) { rolls.push({ x, y, wi, pid, t: 1.6, tick: 0 }); sfx.box(); },
   box(x, y) { toasts.push({ txt: '❓ ¡Apareció una caja misteriosa!', t: 3.5 }); tone(600, 1200, 0.2, 0.12, 'triangle'); flashes.push({ x, y, r: 120, t: 0.5, max: 0.5, c: '255,215,90' }); },
   newEnemy(ti) { warn = { ti, t: 3.85 }; }, // aviso de nuevo zombi (aparece tras el letrero de oleada)
@@ -587,8 +599,36 @@ function fx(name, ...a) { FX[name](...a); if (isHost() && NET.conns.length) evQu
 
 // ---------- Estado ----------
 let state = 'menu';
-let players = [], P = null, enemies = [], bullets = [], fireballs = [], puddles = [], particles = [], pickups = [], bombs = [], beams = [], floats = [], toasts = [];
-let boxes = [], rolls = [], grants = [], slashes = [], mod = '', modLast = '';
+let players = [], P = null, enemies = [], bullets = [], fireballs = [], puddles = [], particles = [], pickups = [], beams = [], floats = [], toasts = [];
+let boxes = [], rolls = [], grants = [], slashes = [], fires = [], tntQ = [], mod = '', modLast = '';
+// Bloques que construyen los jugadores (y la dinamita, que es un bloque que explota)
+const blockHp = new Map();
+const tileCenter = i => [(i % GW + 0.5) * T, (((i / GW) | 0) + 0.5) * T];
+const tileIdx = (x, y) => Math.floor(y / T) * GW + Math.floor(x / T);
+function clearBlocks() { for (let i = 0; i < grid.length; i++) if (grid[i] === BLOCK || grid[i] === TNT) grid[i] = 0; blockHp.clear(); }
+function placeTile(pl) {
+  const tx = pl.x + Math.cos(pl.ang) * 38, ty = pl.y + Math.sin(pl.ang) * 38;
+  const gx = Math.floor(tx / T), gy = Math.floor(ty / T), idx = gy * GW + gx;
+  if (gx < 1 || gy < 1 || gx >= GW - 1 || gy >= GH - 1 || grid[idx] !== 0) return { idx, ok: false };
+  const x0 = gx * T, y0 = gy * T;
+  const hits = o => { const cx = clamp(o.x, x0, x0 + T), cy = clamp(o.y, y0, y0 + T); return dist2(cx, cy, o.x, o.y) < (o.r + 2) ** 2; };
+  if (players.some(p => !p.dead && hits(p)) || enemies.some(hits) || boxes.some(b => hits({ x: b.x, y: b.y, r: 14 }))) return { idx, ok: false };
+  return { idx, ok: true };
+}
+function setBlock(idx, kind) { grid[idx] = kind; blockHp.set(idx, { hp: kind === TNT ? 40 : 150, max: kind === TNT ? 40 : 150 }); }
+function damageBlock(idx, d, owner) {
+  const b = blockHp.get(idx);
+  if (!b) return;
+  if (grid[idx] === TNT) { b.hp -= d; if (b.hp <= 0) triggerTNT(idx, owner, 0.05); return; }
+  b.hp -= d;
+  const [x, y] = tileCenter(idx);
+  if (b.hp <= 0) { grid[idx] = 0; blockHp.delete(idx); fx('blockBreak', r0(x), r0(y)); }
+  else if (d >= 5) fx('blockHit', r0(x), r0(y));
+}
+function triggerTNT(idx, owner, delay) {
+  if (grid[idx] !== TNT || tntQ.some(q => q.idx === idx)) return;
+  tntQ.push({ idx, owner, t: delay === undefined ? 0.05 : delay });
+}
 let wave = 0, waveTotal = 1, toSpawn = 0, spawnTimer = 0, waveDelay = 0, score = 0, combo = 1, comboTimer = 0, kills = 0, shake = 0, flowTimer = 0;
 let flashes = [], hitStop = 0;
 let banner = '', bannerT = 0, bannerMax = 1, warn = null, bossCount = 0, bossKills = 0, runTime = 0, nextId = 1, hurtFlash = 0, cardsOpen = false;
@@ -598,6 +638,7 @@ function makePlayer(id, name, meta, ci) {
     hp: max, max, ang: 0, speed: 160, inv: 1.5, cd: 0, w: 0, walk: 0, acid: 0, shield: 0, choosing: false,
     ammo: WEAPONS.map(w => w.ammo === Infinity ? Infinity : 0), unlocked: WEAPONS.map((w, i) => i === 0),
     level: 1, xp: 0, buffs: [], pendingCards: 0, dead: false, kills: 0, killStreak: 0, input: { mx: 0, my: 0, a: 0, sh: false } };
+  { const b = WI('build'); pl.unlocked[b] = true; pl.ammo[b] = 8; } // empiezas con algunos bloques para tu fortaleza
   // quien entra a media partida en línea no llega con las manos vacías
   if (players.length && wave >= 3) { const u = WI('uzi'); pl.unlocked[u] = true; pl.ammo[u] = giveOf(pl, u); }
   collideWalls(pl, true);
@@ -605,8 +646,8 @@ function makePlayer(id, name, meta, ci) {
 }
 function resetWorld() {
   paintFloor();
-  enemies = []; bullets = []; fireballs = []; puddles = []; particles = []; pickups = []; bombs = []; beams = []; floats = []; toasts = [];
-  boxes = []; rolls = []; grants = []; slashes = []; mod = ''; modLast = '';
+  enemies = []; bullets = []; fireballs = []; puddles = []; particles = []; pickups = []; beams = []; floats = []; toasts = [];
+  boxes = []; rolls = []; grants = []; slashes = []; fires = []; tntQ = []; mod = ''; modLast = ''; clearBlocks();
   wave = 0; waveTotal = 1; toSpawn = 0; spawnTimer = 0; waveDelay = 1.5; score = 0; combo = 1; comboTimer = 0; kills = 0; shake = 0; flowTimer = 0;
   banner = ''; bannerT = 0; warn = null; flashes = []; hitStop = 0; bossCount = 0; bossKills = 0; runTime = 0; nextId = 1; hurtFlash = 0; cardsOpen = false; evQueue = [];
   players = []; P = null;
@@ -742,7 +783,7 @@ function giveWeapon(pl, wi) {
   const isNew = !pl.unlocked[wi];
   pl.unlocked[wi] = true;
   if (WEAPONS[wi].give) pl.ammo[wi] += Math.round(giveOf(pl, wi) * (isNew ? 1 : 1.5));
-  if (isNew && WEAPONS[wi].id !== 'dynamite') pl.w = wi;
+  if (isNew && WEAPONS[wi].id !== 'tnt' && WEAPONS[wi].id !== 'build') pl.w = wi;
   fx('weapon', pl.id, wi, pl.name, isNew ? 1 : 0);
 }
 
@@ -821,7 +862,7 @@ addEventListener('keydown', e => {
   if (state === 'play' && P) {
     if (e.code === 'KeyQ') cycleWeapon(-1);
     if (e.code === 'KeyE') cycleWeapon(1);
-    if (/^Digit[1-7]$/.test(e.code)) selectWeapon(+e.code[5] - 1);
+    if (/^Digit[1-8]$/.test(e.code)) selectWeapon(+e.code[5] - 1);
     if (e.code === 'KeyP' || e.code === 'Escape') pauseGame();
   } else if (state === 'pause' && (e.code === 'KeyP' || e.code === 'Escape')) resumeGame();
 });
@@ -867,6 +908,7 @@ function readLocalInput() {
 function movePlayer(pl, mx, my, dt) {
   let spd = pl.speed * (1 + bonus(pl, 'speed'));
   for (const pd of puddles) if (dist2(pd.x, pd.y, pl.x, pl.y) < (pd.r * 0.9) ** 2) { spd *= 0.45; pl.acid = 0.15; break; } // vómito: te hace lento
+  for (const f of fires) if (dist2(f.x, f.y, pl.x, pl.y) < (f.r * 0.9) ** 2) { pl.burnT = 0.2; break; }
   pl.x += mx * spd * dt; pl.y += my * spd * dt;
   collideWalls(pl, true);
   if (Math.hypot(mx, my) > 0.1) pl.walk += dt * 12;
@@ -979,12 +1021,12 @@ function fire(pl) {
   pl.cd = w.rate / (1 + bonus(pl, 'rate'));
   if (pl.ammo[pl.w] !== Infinity) pl.ammo[pl.w]--;
   const a = pl.ang, dx = Math.cos(a), dy = Math.sin(a), mx = pl.x + dx * 16, my = pl.y + dy * 16;
-  if (w.id === 'dynamite') {
-    // se lanza en arco y cae a unos pasos (antes si hay pared)
-    let dist = 175;
-    for (let s = 20; s <= 175; s += 8) if (tileAt(pl.x + dx * s, pl.y + dy * s) === WALL) { dist = Math.max(10, s - 16); break; }
-    bombs.push({ id: nextId++, sx: pl.x, sy: pl.y, x: pl.x, y: pl.y, tx: pl.x + dx * dist, ty: pl.y + dy * dist, ft: 0, fd: 0.45, fuse: 1.5, h: 0, r: 9, owner: pl });
-    fx('sfx', 'throw');
+  if (isPlaceable(w)) {
+    const t = placeTile(pl);
+    if (!t.ok) { pl.ammo[pl.w]++; pl.cd = 0.12; if (!(pl.failT > 0)) { pl.failT = 0.9; fx('float', r0(pl.x), r0(pl.y) - 30, 'No cabe ahí', '#ff8a6a', pl.id); } return; }
+    setBlock(t.idx, w.id === 'tnt' ? TNT : BLOCK);
+    const [bx, by] = tileCenter(t.idx);
+    fx('build', r0(bx), r0(by), w.id === 'tnt' ? 1 : 0);
   } else if (w.id === 'katana') {
     // tajo en abanico frente a ti: mucho daño, empuja y corta los huesos que te lanzan
     const R = 66;
@@ -995,19 +1037,22 @@ function fire(pl) {
       const da = Math.abs(((Math.atan2(ey, ex) - a) % 6.283 + 9.425) % 6.283 - 3.1416);
       if (da < 1.15 || d < e.r + pl.r + 6) damageEnemy(e, w.dmg, ex / (d || 1) * 3, ey / (d || 1) * 3, pl);
     }
-    for (const f of fireballs) if (f.kind === 'bone' && dist2(f.x, f.y, pl.x, pl.y) < R * R) f.life = 0;
+    for (const f of fireballs) if (f.kind === 'molotov' && dist2(f.x, f.y, pl.x, pl.y) < R * R) f.life = -9; // cortas la botella en el aire
+    // la katana también hace estallar la dinamita que tengas enfrente
+    const gx = Math.floor(pl.x / T), gy = Math.floor(pl.y / T);
+    for (let yy = gy - 2; yy <= gy + 2; yy++) for (let xx = gx - 2; xx <= gx + 2; xx++) {
+      const i = yy * GW + xx; if (xx < 0 || yy < 0 || xx >= GW || yy >= GH || grid[i] !== TNT) continue;
+      const [cx, cy] = tileCenter(i), ex = cx - pl.x, ey = cy - pl.y;
+      if (Math.hypot(ex, ey) < R + 14 && Math.abs(((Math.atan2(ey, ex) - a) % 6.283 + 9.425) % 6.283 - 3.1416) < 1.15) triggerTNT(i, pl);
+    }
     fx('slash', r0(pl.x), r0(pl.y), r2(a), pl.id);
   } else if (w.id === 'rail') {
     let ex = mx, ey = my;
-    for (let s = 0; s < 900; s += 6) { ex = mx + dx * s; ey = my + dy * s; if (tileAt(ex, ey) === WALL) break; }
+    for (let s = 0; s < 900; s += 6) { ex = mx + dx * s; ey = my + dy * s; const tv = tileAt(ex, ey); if (tv === WALL) break; if (tv === TNT) triggerTNT(tileIdx(ex, ey), pl); }
     const len = Math.hypot(ex - mx, ey - my);
     for (const e of enemies) {
       const t = clamp((e.x - mx) * dx + (e.y - my) * dy, 0, len);
       if (dist2(mx + dx * t, my + dy * t, e.x, e.y) < (e.r + 6) ** 2) damageEnemy(e, w.dmg, dx, dy, pl);
-    }
-    for (const b of bombs) {
-      const t = clamp((b.x - mx) * dx + (b.y - my) * dy, 0, len);
-      if (b.ft >= b.fd && dist2(mx + dx * t, my + dy * t, b.x, b.y) < (b.r + 4) ** 2) { b.fuse = Math.min(b.fuse, 0.05); b.owner = pl; }
     }
     fx('beam', r0(mx), r0(my), r0(ex), r0(ey), pl.id);
   } else {
@@ -1066,9 +1111,17 @@ function explode(x, y, owner) {
   for (const pl of players) {
     if (pl.dead) continue;
     const dp = Math.hypot(pl.x - x, pl.y - y);
-    if (dp < R) hurtPlayer(pl, 100 * (1 - 0.7 * dp / R), true);
+    // pegado a la explosión casi te mata; a unos pasos ya duele mucho menos. En cadena solo te pega una vez
+    if (dp < R && !(pl.blastInv > 0)) { hurtPlayer(pl, 92 * Math.pow(1 - dp / R, 1.6), true); pl.blastInv = 0.35; }
   }
-  for (const b of bombs) if (!b.dead && dist2(b.x, b.y, x, y) < R * R) { b.fuse = Math.min(b.fuse, 0.15); b.owner = b.owner || owner; }
+  const gx = Math.floor(x / T), gy = Math.floor(y / T);
+  for (let yy = gy - 4; yy <= gy + 4; yy++) for (let xx = gx - 4; xx <= gx + 4; xx++) {
+    if (xx < 0 || yy < 0 || xx >= GW || yy >= GH) continue;
+    const i = yy * GW + xx, [cx, cy] = tileCenter(i);
+    if (dist2(cx, cy, x, y) > (R + 10) ** 2) continue;
+    if (grid[i] === TNT) triggerTNT(i, owner, 0.14); // reacción en cadena
+    else if (grid[i] === BLOCK) damageBlock(i, 90, owner);
+  }
 }
 function hurtPlayer(pl, d, force) {
   if (pl.dead || d <= 0 || pl.shield > 0) return; // inmortal: no le pasa nada
@@ -1105,7 +1158,7 @@ function updatePlayer(pl, dt) {
     pl.ang += da * (1 - Math.exp(-dt * 25));
   } else { movePlayer(pl, inp.mx, inp.my, dt); pl.ang = inp.a || 0; }
   if (bonus(pl, 'regen')) pl.hp = Math.min(pl.max, pl.hp + bonus(pl, 'regen') * dt);
-  pl.cd -= dt; pl.inv -= dt; if (pl.acid > 0) pl.acid -= dt;
+  pl.cd -= dt; pl.inv -= dt; pl.failT = (pl.failT || 0) - dt; pl.blastInv = (pl.blastInv || 0) - dt; if (pl.acid > 0) pl.acid -= dt; if (pl.burnT > 0) pl.burnT -= dt;
   if (pl.shield > 0) { pl.shield -= dt; if (pl.shield <= 0) pl.choosing = false; }
   if (inp.sh && !pl.choosing) fire(pl);
 }
@@ -1156,7 +1209,8 @@ function update(dt) {
       }
       if (e.charge > 0) {
         e.charge -= dt; const ox = e.x, oy = e.y;
-        e.x += e.cvx * dt; e.y += e.cvy * dt; collideWalls(e, false);
+        e.x += e.cvx * dt; e.y += e.cvy * dt; e.hitTile = -1; collideWalls(e, false);
+        if (e.hitTile >= 0) { damageBlock(e.hitTile, 200); e.charge = 0; }
         if (Math.hypot(e.x - ox, e.y - oy) < 360 * dt * 0.4) { e.charge = 0; shake = Math.max(shake, 8); }
         for (const pl of players) if (!pl.dead && e.atk <= 0 && dist2(e.x, e.y, pl.x, pl.y) < (e.r + pl.r + 4) ** 2) { hurtPlayer(pl, e.dmg); e.atk = 0.8; }
         continue;
@@ -1190,7 +1244,9 @@ function update(dt) {
       const qx = e.x - pl.x, qy = e.y - pl.y, qd = Math.hypot(qx, qy) || 0.01, rr = e.r + pl.r;
       if (qd < rr) { e.x += qx / qd * (rr - qd); e.y += qy / qd * (rr - qd); }
     }
+    e.hitTile = -1;
     collideWalls(e, false);
+    if (e.hitTile >= 0 && e.atk <= 0) { damageBlock(e.hitTile, e.dmg * (e.type === 'brute' || e.type === 'boss' ? 2.5 : 1)); e.atk = 0.8; } // golpea tu bloque
     if (e.atk <= 0) for (const pl of players) {
       if (!pl.dead && pl.shield <= 0 && dist2(e.x, e.y, pl.x, pl.y) < (e.r + pl.r + 3) ** 2) { hurtPlayer(pl, e.dmg); e.atk = 0.8; break; }
     }
@@ -1208,11 +1264,11 @@ function update(dt) {
     } else if (e.type === 'thrower') {
       e.shoot -= dt;
       if (e.shoot <= 0) {
-        if (d < 440 && lineOfSight(e.x, e.y, tg.x, tg.y)) {
-          // ráfaga de 3 huesos en línea recta: hay que esquivarlos
-          const a0 = Math.atan2(dy, dx);
-          for (const k of [-0.2, 0, 0.2]) fireballs.push({ kind: 'bone', x: e.x, y: e.y, vx: Math.cos(a0 + k) * 270, vy: Math.sin(a0 + k) * 270, life: 2.2, max: 2.2 });
-          fx('sfx', 'bone'); e.mouthT = 0.3; e.shoot = rand(2.2, 3.4);
+        if (d < 420 && lineOfSight(e.x, e.y, tg.x, tg.y)) {
+          // avienta una botella de fuego en arco hacia donde estás
+          const tx = tg.x + rand(-14, 14), ty = tg.y + rand(-14, 14), dd = Math.hypot(tx - e.x, ty - e.y) || 1, sp = 230;
+          fireballs.push({ kind: 'molotov', x: e.x, y: e.y, vx: (tx - e.x) / dd * sp, vy: (ty - e.y) / dd * sp, life: dd / sp, max: dd / sp });
+          fx('sfx', 'bottle'); e.mouthT = 0.3; e.shoot = rand(2.8, 4);
         } else e.shoot = 0.4;
       }
     }
@@ -1224,7 +1280,9 @@ function update(dt) {
     b.px = b.x; b.py = b.y;
     if (b.flame) { const dr = Math.exp(-dt * 2.2); b.vx *= dr; b.vy *= dr; }
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    if (tileAt(b.x, b.y) === WALL) { b.life = 0; if (!b.flame) fx('spark', r0(b.px), r0(b.py)); continue; }
+    const tv = tileAt(b.x, b.y);
+    if (tv === WALL) { b.life = 0; if (!b.flame) fx('spark', r0(b.px), r0(b.py)); continue; }
+    if (tv === TNT) { triggerTNT(tileIdx(b.x, b.y), b.owner); b.life = 0; continue; }
     const sx = b.x - b.px, sy = b.y - b.py, sl = sx * sx + sy * sy || 1;
     const hr = b.flame ? 6 + 14 * (1 - b.life / b.max) : 2;
     for (const e of enemies) {
@@ -1237,9 +1295,6 @@ function update(dt) {
         if (b.pierce > 0) { b.pierce--; b.hit.push(e); } else { b.life = 0; break; }
       }
     }
-    if (b.life > 0 && !b.flame) for (const bm of bombs) {
-      if (bm.ft >= bm.fd && dist2(b.x, b.y, bm.x, bm.y) < (bm.r + 3) ** 2) { bm.fuse = Math.min(bm.fuse, 0.05); bm.owner = b.owner; b.life = 0; break; }
-    }
   }
   bullets = bullets.filter(b => b.life > 0);
   enemies = enemies.filter(e => e.hp > 0);
@@ -1247,6 +1302,14 @@ function update(dt) {
   // ácido, huesos y bolas del jefe
   for (const f of fireballs) {
     f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt;
+    if (f.kind === 'molotov') {
+      if (f.life <= 0 && f.life > -5) { // revienta: fuego en el suelo
+        fx('fireLand', r0(f.x), r0(f.y));
+        fires.push({ x: f.x, y: f.y, r: 36, t: 3.5, max: 3.5 });
+        for (const pl of players) if (!pl.dead && dist2(f.x, f.y, pl.x, pl.y) < (26 + pl.r) ** 2) hurtPlayer(pl, 10);
+      }
+      continue;
+    }
     if (f.kind === 'acid') {
       if (f.life <= 0) {
         fx('splash', r0(f.x), r0(f.y));
@@ -1257,9 +1320,11 @@ function update(dt) {
       }
       continue;
     }
-    if (tileAt(f.x, f.y) === WALL) { f.life = 0; if (f.kind === 'bone') fx('spark', r0(f.x), r0(f.y)); continue; }
-    for (const pl of players) if (!pl.dead && dist2(f.x, f.y, pl.x, pl.y) < (pl.r + 6) ** 2) { hurtPlayer(pl, f.kind === 'bone' ? 12 : 14); f.life = 0; break; }
-    if (f.life > 0) for (const bm of bombs) if (bm.ft >= bm.fd && dist2(f.x, f.y, bm.x, bm.y) < bm.r * bm.r) { bm.fuse = Math.min(bm.fuse, 0.05); f.life = 0; }
+    const ftv = tileAt(f.x, f.y);
+    if (ftv === WALL) { f.life = 0; continue; }
+    if (ftv === BLOCK) { damageBlock(tileIdx(f.x, f.y), 30); f.life = 0; continue; }
+    if (ftv === TNT) { triggerTNT(tileIdx(f.x, f.y)); f.life = 0; continue; }
+    for (const pl of players) if (!pl.dead && dist2(f.x, f.y, pl.x, pl.y) < (pl.r + 6) ** 2) { hurtPlayer(pl, 14); f.life = 0; break; }
   }
   fireballs = fireballs.filter(f => f.life > 0);
   // los charcos de vómito ya no hacen daño: solo te alentan (se calcula al moverte)
@@ -1267,14 +1332,33 @@ function update(dt) {
   puddles = puddles.filter(pd => pd.t > 0);
   if (state !== 'play' && state !== 'pause' && state !== 'cards') return;
 
-  // dinamita: vuela en arco, cae y explota
-  for (const b of bombs) {
-    if (b.ft < b.fd) { b.ft += dt; const k = Math.min(1, b.ft / b.fd); b.x = b.sx + (b.tx - b.sx) * k; b.y = b.sy + (b.ty - b.sy) * k; b.h = Math.sin(Math.PI * k) * 45; }
-    else b.h = 0;
-    b.fuse -= dt;
-    if (b.fuse <= 0 && !b.dead) { b.dead = true; explode(b.x, b.y, b.owner); }
+  // dinamita que va a estallar (con un pequeño retraso para la reacción en cadena)
+  for (const q of tntQ) {
+    q.t -= dt;
+    if (q.t <= 0) {
+      q.done = true;
+      if (grid[q.idx] === TNT) { grid[q.idx] = 0; blockHp.delete(q.idx); const [x, y] = tileCenter(q.idx); explode(x, y, q.owner); }
+    }
   }
-  bombs = bombs.filter(b => !b.dead);
+  tntQ = tntQ.filter(q => !q.done);
+  // fuego en el suelo: quema jugadores y zombis, daña bloques y hace estallar la dinamita
+  for (const f of fires) {
+    f.t -= dt;
+    for (const pl of players) {
+      if (pl.dead || pl.shield > 0 || dist2(f.x, f.y, pl.x, pl.y) >= (f.r * 0.9) ** 2) continue;
+      pl.hp -= 16 * dt * Math.max(0.3, 1 - bonus(pl, 'armor')); pl.burnT = 0.2;
+      if (pl.hp <= 0) playerDied(pl);
+    }
+    for (const e of enemies) if (dist2(f.x, f.y, e.x, e.y) < f.r * f.r) e.burn = Math.max(e.burn || 0, 1.2);
+    const gx = Math.floor(f.x / T), gy = Math.floor(f.y / T);
+    for (let yy = gy - 1; yy <= gy + 1; yy++) for (let xx = gx - 1; xx <= gx + 1; xx++) {
+      const i = yy * GW + xx, [cx, cy] = tileCenter(i);
+      if (dist2(cx, cy, f.x, f.y) > (f.r + 18) ** 2) continue;
+      if (grid[i] === TNT) triggerTNT(i, null, 0.3);
+      else if (grid[i] === BLOCK) damageBlock(i, 30 * dt);
+    }
+  }
+  fires = fires.filter(f => f.t > 0);
   enemies = enemies.filter(e => e.hp > 0);
   if (state !== 'play' && state !== 'pause' && state !== 'cards') return;
 
@@ -1327,10 +1411,12 @@ function cosmetic(dt) {
     if (e.burn > 0 && Math.random() < 0.5) addP(e.x + rand(-8, 8), e.y - rand(0, 20), rand(-10, 10), -rand(30, 70), 0.35, Math.random() < 0.5 ? '#ffb030' : '#ff5a1a', 4);
     if (e.gold && Math.random() < 0.15) addP(e.x + rand(-10, 10), e.y - rand(5, 30), 0, -20, 0.5, '#fff0a0', 2);
   }
-  for (const b of bombs) if (Math.random() < 0.7) addP(b.x + 3, b.y - b.h - 18, rand(-30, 30), -rand(20, 60), 0.2, Math.random() < 0.5 ? '#ffe060' : '#ff8a2a', 2);
+  for (const f of fires) if (Math.random() < 0.9) addP(f.x + rand(-f.r, f.r) * 0.8, f.y + rand(-f.r, f.r) * 0.45, rand(-10, 10), -rand(40, 90), 0.45, Math.random() < 0.5 ? '#ffb030' : '#ff5a1a', rand(3, 6));
+  for (const f of fireballs) if (f.kind === 'molotov' && Math.random() < 0.6) addP(f.x, f.y - 14 - 40 * Math.sin(Math.PI * clamp(1 - f.life / f.max, 0, 1)), rand(-10, 10), -rand(10, 40), 0.25, '#ffb030', 3);
   for (const pl of players) {
     if (pl.dead) continue;
     if (pl.acid > 0 && Math.random() < 0.25) addP(pl.x + rand(-8, 8), pl.y, 0, -30, 0.3, '#c8f04a', 3);
+    if (pl.burnT > 0 && Math.random() < 0.6) addP(pl.x + rand(-8, 8), pl.y - rand(0, 24), 0, -60, 0.3, '#ff8a2a', 4);
     if (pl.shield > 0 && Math.random() < 0.5) addP(pl.x + rand(-14, 14), pl.y - rand(0, 34), 0, -40, 0.4, Math.random() < 0.5 ? '#fff3a0' : '#ffd040', 2);
   }
   for (const r of rolls) { r.t -= dt; r.tick -= dt; if (r.t > 0.4 && r.tick <= 0) { r.tick = 0.06 + (1.6 - r.t) * 0.06; sfx.tick(); } }
@@ -1453,7 +1539,7 @@ function hostEndGame() {
   for (const c of NET.conns) if (c.open) c.send(fin);
   endRun(false);
 }
-const FB_KINDS = ['orb', 'acid', 'bone'];
+const FB_KINDS = ['orb', 'acid', 'molotov'];
 function buildSnap() {
   return {
     t: 's', w: wave, wt: waveTotal, ts: toSpawn, wd: (toSpawn <= 0 && enemies.length === 0) ? r1(Math.max(0, waveDelay)) : 0,
@@ -1467,7 +1553,8 @@ function buildSnap() {
     fb: fireballs.map(f => [r0(f.x), r0(f.y), r0(f.vx), r0(f.vy), FB_KINDS.indexOf(f.kind), r2(f.life), r2(f.max)]),
     pd: puddles.map(p => [r0(p.x), r0(p.y), p.r, r1(p.t), p.max]),
     pk: pickups.map(p => [r0(p.x), r0(p.y), p.kind === 'hp' ? 1 : 0, r1(p.t)]),
-    bm: bombs.map(b => [b.id, r0(b.x), r0(b.y), r0(b.h), r2(b.fuse)]),
+    bk: [...blockHp].map(([i, b]) => [i, grid[i], Math.max(1, Math.round(100 * b.hp / b.max))]),
+    fi: fires.map(f => [r0(f.x), r0(f.y), f.r, r1(f.t), f.max]),
     bx: boxes.map(b => [b.id, r0(b.x), r0(b.y), r2(b.prog), b.open > 0 ? 1 : 0]),
     md: mod,
     ev: evQueue,
@@ -1574,7 +1661,11 @@ function applySnap(s) {
   fireballs = s.fb.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], kind: FB_KINDS[a[4]] || 'orb', life: a[5], max: a[6] }));
   puddles = s.pd.map(a => ({ x: a[0], y: a[1], r: a[2], t: a[3], max: a[4] }));
   pickups = s.pk.map(a => ({ x: a[0], y: a[1], kind: a[2] ? 'hp' : 'ammo', t: a[3] }));
-  bombs = (s.bm || []).map(a => ({ id: a[0], x: a[1], y: a[2], h: a[3], fuse: a[4], r: 9 }));
+  // bloques: el mapa del invitado se sincroniza para que choques con ellos igual que el anfitrión
+  const keep = new Set();
+  for (const a of s.bk || []) { keep.add(a[0]); grid[a[0]] = a[1]; blockHp.set(a[0], { hp: a[2], max: 100 }); }
+  for (const i of [...blockHp.keys()]) if (!keep.has(i)) { blockHp.delete(i); if (grid[i] === BLOCK || grid[i] === TNT) grid[i] = 0; }
+  fires = (s.fi || []).map(a => ({ x: a[0], y: a[1], r: a[2], t: a[3], max: a[4] }));
   boxes = (s.bx || []).map(a => ({ id: a[0], x: a[1], y: a[2], prog: a[3], open: a[4] }));
   mod = s.md || '';
   for (const ev of s.ev || []) { const f = FX[ev[0]]; if (f) try { f(...ev.slice(1)); } catch (e) { } }
@@ -1609,7 +1700,8 @@ function clientUpdate(dt) {
   for (const b of bullets) { b.px = b.x; b.py = b.y; if (b.flame) { const dr = Math.exp(-dt * 2.2); b.vx *= dr; b.vy *= dr; } b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; if (tileAt(b.x, b.y) === WALL || b.life < -0.1) b.gone = true; }
   bullets = bullets.filter(b => !b.gone);
   for (const f of fireballs) { f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt; }
-  fireballs = fireballs.filter(f => f.life > -0.1 && (f.kind === 'acid' || tileAt(f.x, f.y) !== WALL));
+  fireballs = fireballs.filter(f => f.life > -0.1 && (f.kind !== 'orb' || tileAt(f.x, f.y) !== WALL));
+  for (const f of fires) f.t -= dt;
   for (const p of puddles) p.t -= dt;
   for (const p of pickups) p.t -= dt;
   comboTimer -= dt;
@@ -1702,7 +1794,7 @@ const ENEMY_LOOK = {
   brute: { body: '#3f4f2a', head: '#748c55', legs: '#2c2c3c', eyes: '#f22', mouth: '#2a0a0a', s: 1.45 },
   spitter: { body: '#5f6e22', head: '#a9bc3a', legs: '#3a3a22', eyes: '#f4f4d0', spit: true, bw: 1.3, s: 1.12 },
   boss: { body: '#4e3a62', head: '#8d7aa8', legs: '#221830', eyes: '#c6ff3a', spit: true, pus: '#c890e8', bw: 1.15, s: 2.3 },
-  thrower: { body: '#5a4a6a', head: '#b0a8c0', legs: '#2c2433', eyes: '#ff4a3a', mouth: '#2a0a0a', gun: 16, gunColor: '#efe6d0', bw: 1.1 },
+  thrower: { body: '#7a3a1a', head: '#c49a6a', legs: '#2c2018', eyes: '#ffcc00', mouth: '#2a0a0a', gun: 10, gunColor: '#3a8a3a', bw: 1.1 },
 };
 
 function draw() {
@@ -1723,6 +1815,28 @@ function draw() {
     const tt = now / 300;
     for (let i = 0; i < 3; i++) { const bx = pd.x + Math.cos(tt + i * 2.1 + pd.x) * pd.r * 0.5, by = pd.y + Math.sin(tt * 1.3 + i * 2.1) * pd.r * 0.3; ctx.fillRect(bx - 1.5, by - 1.5, 3, 3); }
   }
+  // fuego en el suelo
+  if (fires.length) {
+    ctx.globalCompositeOperation = 'lighter';
+    for (const f of fires) {
+      const a = clamp(f.t / 0.6, 0, 1) * clamp((f.max - f.t) / 0.15, 0, 1);
+      for (let i = 0; i < 5; i++) {
+        const ox = Math.cos(i * 1.3 + now / 230) * f.r * 0.45, oy = Math.sin(i * 1.7 + now / 260) * f.r * 0.25, rr = f.r * (0.45 + 0.15 * Math.sin(now / 90 + i));
+        const g = ctx.createRadialGradient(f.x + ox, f.y + oy, 0, f.x + ox, f.y + oy, rr);
+        g.addColorStop(0, `rgba(255,210,90,${0.5 * a})`); g.addColorStop(0.6, `rgba(255,90,20,${0.3 * a})`); g.addColorStop(1, 'rgba(255,60,10,0)');
+        ctx.fillStyle = g; ctx.fillRect(f.x + ox - rr, f.y + oy - rr, rr * 2, rr * 2);
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // dónde va a quedar tu bloque
+  if (P && !P.dead && state === 'play' && isPlaceable(WEAPONS[P.w])) {
+    const t = placeTile(P), gx = t.idx % GW, gy = (t.idx / GW) | 0;
+    if (gx > 0 && gy > 0 && gx < GW - 1 && gy < GH - 1) {
+      ctx.strokeStyle = t.ok ? `rgba(120,255,120,${0.5 + 0.3 * Math.sin(now / 150)})` : 'rgba(255,80,60,.5)'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+      ctx.strokeRect(gx * T + 2, gy * T + 2, T - 4, T - 4); ctx.setLineDash([]);
+    }
+  }
   // recogibles (en el suelo)
   for (const p of pickups) {
     if (p.t < 3 && Math.floor(p.t * 8) % 2) continue;
@@ -1741,8 +1855,8 @@ function draw() {
   const gy0 = Math.max(0, Math.floor(vy0 / T)), gy1 = Math.min(GH - 1, Math.floor(vy1 / T));
   for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++)
     if (grid[gy * GW + gx] === WALL) list.push({ k: 'w', y: gy * T + T - 0.5, gx, gy });
+    else if (grid[gy * GW + gx] === BLOCK || grid[gy * GW + gx] === TNT) list.push({ k: 'blk', y: gy * T + T - 0.5, gx, gy });
   for (const e of enemies) list.push({ k: 'e', y: e.y, o: e });
-  for (const b of bombs) list.push({ k: 'b', y: b.y, o: b });
   for (const b of boxes) list.push({ k: 'x', y: b.y, o: b });
   for (const pl of players) if (!pl.dead) list.push({ k: 'p', y: pl.y, o: pl });
   list.sort((a, b) => a.y - b.y);
@@ -1771,17 +1885,8 @@ function draw() {
         ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(e.x - bw / 2, by, bw, 3);
         ctx.fillStyle = e.type === 'spitter' ? '#d8f04a' : '#9be05a'; ctx.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.max), 3);
       }
-    } else if (it.k === 'b') {
-      // dinamita: tres cartuchos rojos con mecha encendida; parpadea más rápido al final
-      const b = it.o, blink = b.fuse < 0.6 && Math.floor(now / (b.fuse < 0.3 ? 40 : 80)) % 2;
-      shadow(b.x, b.y, 7);
-      const z = b.h || 0;
-      for (const ox of [-5, 0, 5]) box(b.x + ox, b.y, 5, 6, 14, z, blink ? '#ffffff' : '#c8281e');
-      ctx.fillStyle = '#2a1a10'; ctx.fillRect(b.x - 8, b.y - z - 9, 16, 3);
-      ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(b.x, b.y - z - 17); ctx.quadraticCurveTo(b.x + 4, b.y - z - 22, b.x + 3, b.y - z - 25); ctx.stroke();
-      // círculo de peligro en el suelo
-      ctx.strokeStyle = `rgba(255,60,40,${0.25 + 0.25 * Math.sin(now / 70)})`; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.ellipse(b.x, b.y, 125, 70, 0, 0, 6.283); ctx.stroke();
+    } else if (it.k === 'blk') {
+      drawBlock(it.gx, it.gy, now);
     } else if (it.k === 'x') {
       drawMysteryBox(it.o, now);
     } else {
@@ -1805,7 +1910,7 @@ function draw() {
       ctx.globalAlpha = 0.55 + 0.3 * Math.sin(now / 250);
       ctx.beginPath(); ctx.ellipse(pl.x, pl.y + 3, pl.r * 1.5, pl.r * 0.75, 0, 0, 6.283); ctx.stroke();
       ctx.globalAlpha = 1;
-      const gunLen = { dynamite: 0, katana: 26, shotgun: 22, flame: 22, rail: 24 }[wid];
+      const gunLen = { build: 0, tnt: 0, katana: 26, shotgun: 22, flame: 22, rail: 24 }[wid];
       drawPerson(pl, { body: PCOLORS[pl.ci] || PCOLORS[0], head: '#f0d2a8', legs: '#2a2a35', eyes: '#1a1a1a', gun: gunLen === undefined ? 18 : gunLen,
         gunColor: wid === 'katana' ? '#dfe8f0' : wid === 'flame' ? '#8a3a1a' : wid === 'rail' ? '#3a6aa0' : undefined,
         flash: shielded && Math.floor(now / 110) % 3 === 0 });
@@ -1845,11 +1950,13 @@ function draw() {
       ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(f.x, f.y, 5, 2.5, 0, 0, 6.283); ctx.fill();
       ctx.fillStyle = '#8fb81e'; ctx.beginPath(); ctx.arc(f.x, f.y - h, 6, 0, 6.283); ctx.fill();
       ctx.fillStyle = '#e0ff7a'; ctx.beginPath(); ctx.arc(f.x - 1.5, f.y - h - 1.5, 2.5, 0, 6.283); ctx.fill();
-    } else if (f.kind === 'bone') { // hueso girando
-      ctx.save(); ctx.translate(f.x, f.y - 14); ctx.rotate(now / 60);
-      ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(-7, 12, 14, 3);
-      ctx.fillStyle = '#f2ead6'; ctx.fillRect(-7, -1.5, 14, 3);
-      for (const sx of [-7, 7]) for (const sy of [-2.5, 2.5]) { ctx.beginPath(); ctx.arc(sx, sy, 2.6, 0, 6.283); ctx.fill(); }
+    } else if (f.kind === 'molotov') { // botella de fuego girando en arco
+      const k = clamp(1 - f.life / f.max, 0, 1), h = 14 + 40 * Math.sin(Math.PI * k) * Math.min(1, f.max);
+      ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(f.x, f.y, 5, 2.5, 0, 0, 6.283); ctx.fill();
+      ctx.save(); ctx.translate(f.x, f.y - h); ctx.rotate(now / 80);
+      ctx.fillStyle = '#3a8a3a'; ctx.fillRect(-3, -5, 6, 9); ctx.fillStyle = '#5ac05a'; ctx.fillRect(-3, -5, 2, 9);
+      ctx.fillStyle = '#e8d8b0'; ctx.fillRect(-1.5, -9, 3, 4);
+      ctx.fillStyle = '#ffb030'; ctx.beginPath(); ctx.arc(0, -11, 3, 0, 6.283); ctx.fill();
       ctx.restore();
     } else {
       ctx.fillStyle = '#7a3ab0'; ctx.beginPath(); ctx.arc(f.x, f.y - 14, 6, 0, 6.283); ctx.fill();
@@ -1899,6 +2006,28 @@ function draw() {
   else if (P && (state === 'pause' || state === 'cards')) { ctx.globalAlpha = 0.25; drawHUD(); ctx.globalAlpha = 1; }
 }
 
+// Bloques de madera de tu fortaleza y cajas de dinamita
+function drawBlock(gx, gy, now) {
+  const i = gy * GW + gx, x = gx * T, y = gy * T, H2 = 24, tnt = grid[i] === TNT;
+  const b = blockHp.get(i), k = b ? clamp(b.hp / b.max, 0, 1) : 1;
+  const flash = tnt && k < 0.5 && Math.floor(now / 90) % 2;
+  ctx.fillStyle = tnt ? (flash ? '#fff' : '#8a1a14') : '#6a4422'; ctx.fillRect(x + 1, y + T - H2, T - 2, H2);
+  ctx.fillStyle = tnt ? (flash ? '#fff' : '#c8281e') : '#a8743a'; ctx.fillRect(x + 1, y - H2 + 1, T - 2, T - 2);
+  if (tnt) {
+    ctx.fillStyle = '#2a1a10'; ctx.fillRect(x + 1, y - H2 + 14, T - 2, 4); ctx.fillRect(x + 1, y - H2 + T - 12, T - 2, 4);
+    ctx.font = '10px ' + FONT; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a0'; ctx.fillText('TNT', x + T / 2, y + T - 8);
+    ctx.fillStyle = '#ffe9a0'; ctx.font = '13px ' + FONT; ctx.fillText('!', x + T / 2, y - H2 + T / 2 + 6);
+    if (Math.random() < 0.15) addP(x + T / 2 + 6, y - H2 + 4, rand(-20, 20), -rand(20, 50), 0.2, '#ffe060', 2);
+  } else {
+    ctx.strokeStyle = 'rgba(60,35,15,.6)'; ctx.lineWidth = 1.5;
+    for (const yy of [11, 22, 33]) { ctx.beginPath(); ctx.moveTo(x + 2, y - H2 + yy); ctx.lineTo(x + T - 2, y - H2 + yy); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(x + 3, y - H2 + 3); ctx.lineTo(x + T - 3, y - H2 + T - 3); ctx.stroke();
+    if (k < 0.66) { ctx.strokeStyle = 'rgba(20,10,5,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 10, y - H2 + 6); ctx.lineTo(x + 18, y - H2 + 18); ctx.lineTo(x + 14, y - H2 + 28); ctx.stroke(); }
+    if (k < 0.33) { ctx.beginPath(); ctx.moveTo(x + 30, y - H2 + 4); ctx.lineTo(x + 24, y - H2 + 20); ctx.lineTo(x + 32, y - H2 + 34); ctx.stroke(); }
+  }
+  ctx.strokeStyle = 'rgba(30,18,8,.7)'; ctx.lineWidth = 1; ctx.strokeRect(x + 1.5, y - H2 + 1.5, T - 3, T - 3);
+  if (b && k < 1) { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(x + 6, y - H2 - 6, T - 12, 3); ctx.fillStyle = tnt ? '#ff6a3a' : '#e0b060'; ctx.fillRect(x + 6, y - H2 - 6, (T - 12) * k, 3); }
+}
 // Balas con aspecto propio por arma
 function drawBullets() {
   ctx.lineCap = 'round';
@@ -2033,7 +2162,7 @@ function drawWaveCorner(alpha) {
 const WARN_INFO = {
   runner: ['CORREDOR', 'Muy rápido pero frágil. ¡Que no te rodeen!'],
   spitter: ['ESCUPIDOR', 'Vomita ácido: el golpe duele y el charco te hace lento.'],
-  thrower: ['LANZAHUESOS', 'Te avienta huesos en ráfagas de 3. ¡Esquívalos o córtalos con la katana!'],
+  thrower: ['INCENDIARIO', 'Avienta botellas de fuego: quema, rompe tus bloques y hace estallar tu dinamita.'],
   brute: ['BRUTO', 'Enorme y resistente. Pega durísimo de cerca.'],
   boss: ['JEFE MUTANTE', 'Embiste y vomita anillos de baba. Llega cada 10 oleadas.'],
 };
