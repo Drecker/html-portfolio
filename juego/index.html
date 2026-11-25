@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bloqueados">
 <meta name="theme-color" content="#14110f">
-<meta name="game-version" content="1.9.0">
+<meta name="game-version" content="1.9.1">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -49,9 +49,10 @@
   .card:disabled{opacity:.55}
   @media (orientation:portrait){.card{width:80vw;min-height:0;flex-direction:row;text-align:left;justify-content:flex-start;gap:12px}.card .txt{align-items:flex-start;gap:3px}}
   /* menú */
-  .logo{font-family:'Bungee','Arial Black',sans-serif;font-weight:400;font-size:clamp(46px,15vmin,110px);animation:logoBob 3.2s ease-in-out infinite;line-height:.95;letter-spacing:3px;color:#b9e34a;
+  .logo{font-family:'Bungee','Arial Black',sans-serif;font-weight:400;font-size:clamp(30px,min(15vmin,10.5vw),110px);animation:logoBob 3.2s ease-in-out infinite;line-height:.95;letter-spacing:3px;color:#b9e34a;
     text-shadow:0 5px 0 #3d5a12,0 10px 0 rgba(0,0,0,.45);margin:0 0 6px}
   @keyframes logoBob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-5px) rotate(1deg)}}
+  .logo{max-width:96vw;white-space:nowrap}
   .logo small{display:block;font-size:.3em;letter-spacing:.5em;color:#ffcf4a;text-shadow:0 3px 0 #8a3b12;margin-top:8px;padding-left:.5em}
   button.big{font-size:clamp(22px,6vmin,34px);padding:12px 56px}
   .menurow{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:96vw}
@@ -75,7 +76,8 @@
   .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
   .st{background:#2d241c;border-radius:12px;padding:10px;text-align:center}
   .st b{display:block;font-size:22px;color:#ffcf4a}.st span{font-size:12px;opacity:.75}
-  table{width:100%;border-collapse:collapse;margin-top:14px}
+  table{width:100%;border-collapse:collapse;margin-top:14px;table-layout:fixed}
+  @media (max-width:380px){th,td{padding:6px 2px;font-size:12px}th{font-size:10px}.st b{font-size:18px}}
   th,td{padding:7px 6px;border-bottom:1px solid #3a2f25;font-size:14px;text-align:center}
   th{color:#ffcf4a;font-size:12px;text-transform:uppercase}
   tr.me td{background:rgba(255,207,74,.15)}
@@ -85,10 +87,9 @@
   .row{display:flex;flex-wrap:wrap;justify-content:center}
   #over .stats{width:min(560px,92vw);grid-template-columns:repeat(4,1fr);margin:6px auto}
   @media (orientation:landscape) and (max-height:500px){
-    .grid{grid-template-columns:repeat(3,1fr);gap:8px}.up{padding:7px 9px;gap:8px}.up .ic{font-size:22px;width:26px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px}.up{padding:7px 9px;gap:8px}.up .ic{font-size:22px;width:26px}
     .up .ds{font-size:11px;line-height:1.2}.up .nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.up .nm .small{font-size:10px}.up .ic{display:none}button.buy{min-width:68px;padding:6px 8px;font-size:13px}.pips i{width:9px}
     .stats{grid-template-columns:repeat(4,1fr)}
-    #help .scroll{columns:2;column-gap:26px}#help .scroll h3{break-after:avoid}#help .scroll p{break-inside:avoid}
   }
   button.online{background:#7ad34a;color:#12300a;box-shadow:0 5px 0 #3d7a1a}
   button.online:active{box-shadow:0 2px 0 #3d7a1a}
@@ -2173,22 +2174,23 @@ function drawWarn(top, colX, colW) {
   if (!info) return top;
   const a = clamp(warn.t / 0.4, 0, 1) * clamp((3.6 - warn.t) / 0.25, 0, 1);
   const slide = (1 - clamp((3.6 - warn.t) / 0.25, 0, 1)) * -30;
-  const bw = Math.min(380, colW), bh = 100, bx = colX - bw / 2, by = top + slide;
+  const compact = H < 420, bw = Math.min(380, colW), bh = compact ? 74 : 100, bx = colX - bw / 2;
+  const by = Math.min(top, hudButtons().weapon.y - 34 - bh) + slide;
   ctx.globalAlpha = a;
   ctx.fillStyle = 'rgba(30,8,6,.88)'; roundRect(bx, by, bw, bh, 14); ctx.fill();
   const pulse = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 180));
   ctx.strokeStyle = `rgba(255,70,50,${pulse})`; ctx.lineWidth = 3; ctx.stroke();
   // dibujo del enemigo
-  const L = ENEMY_LOOK[type], k = 62 / (46 * (L.s || 1));
-  ctx.save(); ctx.translate(bx + 46, by + bh - 14); ctx.scale(k, k);
+  const L = ENEMY_LOOK[type], k = (compact ? 44 : 62) / (46 * (L.s || 1));
+  ctx.save(); ctx.translate(bx + (compact ? 34 : 46), by + bh - (compact ? 10 : 14)); ctx.scale(k, k);
   drawPerson({ x: 0, y: 0, r: RADIUS[type], ang: Math.PI / 2, walk: performance.now() / 120, mouthT: Math.sin(performance.now() / 300) > 0 ? 1 : 0 }, { ...L });
   ctx.restore();
   ctx.textAlign = 'left';
-  const tx = bx + 92;
-  fancyText('⚠ ¡PELIGRO! NUEVO ZOMBI', tx, by + 24, 12, '#ffd0c0', '#ff5a3a', 4);
-  fancyText(info[0], tx, by + 52, 22, '#e8ff9a', '#8fd02a', 5);
-  ctx.font = 'bold 12px -apple-system,sans-serif'; ctx.fillStyle = '#f3e9d8';
-  wrapText(info[1], tx, by + 72, bw - 102, 14);
+  const tx = bx + (compact ? 66 : 92);
+  fancyText('⚠ ¡PELIGRO! NUEVO ZOMBI', tx, by + (compact ? 17 : 24), compact ? 10 : 12, '#ffd0c0', '#ff5a3a', 4);
+  fancyText(info[0], tx, by + (compact ? 38 : 52), compact ? 17 : 22, '#e8ff9a', '#8fd02a', 5);
+  ctx.font = (compact ? 'bold 11px' : 'bold 12px') + ' -apple-system,sans-serif'; ctx.fillStyle = '#f3e9d8';
+  wrapText(info[1], tx, by + (compact ? 54 : 72), bw - (compact ? 74 : 102), compact ? 12 : 14);
   ctx.globalAlpha = 1;
   return by + bh + 6;
 }
@@ -2265,14 +2267,17 @@ function drawHUD() {
   }
   const gapL = safe.l + 250, gapR = W - safe.r - 175;
   const gapW = gapR - gapL, gapX = (gapL + gapR) / 2;
-  let panelBottom = gapW >= 300 ? safe.t + 8 : Math.max(safe.t + 104, ly + 4);
+  const hb = hudButtons(), buffsDown = P.buffs.length > 0 && hb.pause.x - 40 - (P.buffs.length - 1) * 38 < safe.l + 252;
+  let panelBottom = gapW >= 300 ? safe.t + 8 : Math.max(safe.t + 104, ly + 4, buffsDown ? cornerWave().y + (mod ? 24 : 10) + 44 : 0);
   const colW = gapW >= 300 ? gapW : W - 24, colX = gapW >= 300 ? gapX : W / 2;
   drawOffscreen();
   // mejoras activas
   const b = hudButtons();
   ctx.textAlign = 'center';
+  const buffRowDown = buffsDown;
   P.buffs.forEach((bf, i) => {
-    const x = b.pause.x - 40 - i * 38, y = b.pause.y + 2;
+    const cw = cornerWave();
+    const x = buffRowDown ? W - safe.r - 12 - 34 - i * 38 : b.pause.x - 40 - i * 38, y = buffRowDown ? cw.y + (mod ? 24 : 10) : b.pause.y + 2;
     ctx.fillStyle = 'rgba(0,0,0,.45)'; roundRect(x, y, 34, 38, 8); ctx.fill();
     ctx.font = '17px sans-serif'; ctx.fillText(bf.ic, x + 17, y + 21);
     ctx.font = 'bold 10px -apple-system,sans-serif'; ctx.fillStyle = '#ffcf4a'; ctx.fillText(bf.waves + ' ol', x + 17, y + 34);
@@ -2293,7 +2298,9 @@ function drawHUD() {
   toasts.forEach((t, i) => {
     ctx.globalAlpha = clamp(t.t, 0, 1);
     ctx.font = 'bold 14px -apple-system,sans-serif';
-    const tw = ctx.measureText(t.txt).width + 24, ty = panelBottom + 8 + i * 26;
+    const below = bannerT > 0 ? H * 0.22 + 26 + (banner.split('\n').length - 1) * 28 : 0;
+    const tw = ctx.measureText(t.txt).width + 24, ty = Math.max(panelBottom, below) + 8 + i * 26;
+    if (ty + 22 > hudButtons().weapon.y - 30) return;
     ctx.fillStyle = 'rgba(0,0,0,.6)'; roundRect(colX - tw / 2, ty, tw, 22, 11); ctx.fill();
     ctx.fillStyle = '#b9e34a'; ctx.fillText(t.txt, colX, ty + 16);
   });
