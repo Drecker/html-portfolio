@@ -27,6 +27,7 @@ Si el dueño pide un cambio sin decir a cuál versión, **aplícalo solo en `jue
 - El juego se llamaba "Bloqueados"; ahora se llama **Zombichos** (la versión base sigue con el nombre viejo). Las claves internas `bloqueados_save_v1` (guardado) y `bloqueados-v1-` (salas en línea) se dejaron así a propósito: cambiarlas borraría el progreso de los jugadores y rompería el modo en línea entre versiones.
 - El guardado (monedas, mejoras, récords) está en `localStorage` con la clave `bloqueados_save_v1`; no rompas su formato (agrega campos con valores por defecto).
 - El video promocional de TikTok se generó con un script de Playwright que avanza el juego cuadro por cuadro; si el dueño pide otro video, se puede repetir la técnica.
+- **Cada vez que entregues un video para TikTok, entrégalo SIEMPRE con su caption listo para copiar, los hashtags (incluye siempre `#zombichos` y `#tudecides`) y un comentario para fijar con el link del juego** (`drecker.github.io/html-portfolio/juego`).
 
 ## Lo que NO hay que hacer
 
